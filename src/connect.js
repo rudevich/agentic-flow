@@ -1,4 +1,4 @@
-import { PREFIX } from './fsx.js';
+import { bold, cyan, dim, red, yellow } from './color.js';
 import { rolesOf } from './sources.js';
 
 const HOW = [
@@ -24,16 +24,17 @@ export function connectHint(sources, mapping) {
   const nameWidth = Math.max(...names.map((name) => name.length));
 
   const lines = [
-    `no MCP server for: ${roles.join(', ')}`,
+    yellow(`no MCP server for: ${roles.join(', ')}`),
     'connect one, then run `agentic-flow config`:',
-    ...HOW.map((line) => `  ${line}`),
+    ...HOW.map((line) => `  ${cyan(line)}`),
     "which server names fill which role, from the skills' ## Source blocks:",
   ];
 
+  // Padding happens before colouring, so the columns line up either way.
   open.forEach(({ name, role, auth }, i) => {
-    lines.push(`  ${role.padEnd(roleWidth)}  <- ${names[i].padEnd(nameWidth)}  agentic/skills/${name}/SKILL.md`);
+    lines.push(`  ${cyan(role.padEnd(roleWidth))}  <- ${names[i].padEnd(nameWidth)}  ${dim(`agentic/skills/${name}/SKILL.md`)}`);
     if (auth === 'none') {
-      lines.push(`  ${' '.repeat(roleWidth)}     takes no token — that skill says how it connects`);
+      lines.push(dim(`  ${' '.repeat(roleWidth)}     takes no token — that skill says how it connects`));
     }
   });
 
@@ -49,4 +50,45 @@ export function printConnectHint(sources, mapping, reporter) {
   return true;
 }
 
-export { PREFIX };
+const WHAT = {
+  dir: () => '.claude is a real directory, not a link to agentic/',
+  file: () => '.claude is a real file, not a link to agentic/',
+  symlink: (target) => `.claude is a symlink to ${target}, not to agentic/`,
+};
+
+const FIX = {
+  dir: [
+    'either move it aside and let init link it:',
+    `  ${cyan('mv .claude/* agentic/ && rmdir .claude && npx agentic-flow init')}`,
+    'or keep it and link the parts:',
+    ...['skills', 'agents', 'hooks'].map((dir) => `  ${cyan(`ln -s ../agentic/${dir} .claude/${dir}`)}`),
+  ],
+  file: ['remove it and run init again:', `  ${cyan('rm .claude && npx agentic-flow init')}`],
+  symlink: ['repoint it:', `  ${cyan('npx agentic-flow init --force')}`],
+};
+
+/**
+ * The one failure that makes everything else pointless: without `.claude`
+ * resolving to `agentic/`, Claude Code sees no skills and `/spec` is not a
+ * command. Said loudly, at the end, because that is where people look.
+ */
+export function claudeHint(conflict) {
+  if (!conflict) return [];
+
+  const { status, target } = conflict;
+  return [
+    red(bold(WHAT[status](target))),
+    'Claude Code reads skills and agents from .claude — until this is fixed',
+    `it sees none of them, and ${bold('/spec does not exist')}`,
+    ...FIX[status],
+  ];
+}
+
+export function printClaudeHint(conflict, reporter) {
+  const lines = claudeHint(conflict);
+  if (!lines.length) return false;
+
+  console.log('');
+  for (const line of lines) reporter.info(line);
+  return true;
+}

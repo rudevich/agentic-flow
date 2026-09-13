@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { cyan } from './color.js';
 import { printConnectHint } from './connect.js';
 import { applyBlock } from './docs.js';
 import { createReporter, ensureDir, statOrNull, writeIfMissing } from './fsx.js';
@@ -119,7 +120,7 @@ export async function addSource({ cwd = process.cwd(), name, dryRun = false, ...
   printConnectHint(sources.filter((source) => source.name === name), mapping, reporter);
 
   console.log('');
-  reporter.info(`fill in the TODOs in ${SKILLS_DIR}/${name}/SKILL.md — what it reads, and which links it hands back`);
+  reporter.info(`fill in the TODOs in ${cyan(`${SKILLS_DIR}/${name}/SKILL.md`)} — what it reads, and which links it hands back`);
 
   return reporter.counts;
 }

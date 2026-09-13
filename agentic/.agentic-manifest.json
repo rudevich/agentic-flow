@@ -1,0 +1,126 @@
+{
+  "version": 1,
+  "writtenAt": "2026-09-13T15:12:19.824Z",
+  "entries": [
+    {
+      "path": "agentic",
+      "type": "dir"
+    },
+    {
+      "path": "agentic/skills",
+      "type": "dir"
+    },
+    {
+      "path": "agentic/skills/.gitkeep",
+      "type": "file",
+      "hash": "e3b0c44298fc1c14"
+    },
+    {
+      "path": "agentic/skills/README.md",
+      "type": "file",
+      "hash": "95495561003970c8"
+    },
+    {
+      "path": "agentic/agents",
+      "type": "dir"
+    },
+    {
+      "path": "agentic/agents/.gitkeep",
+      "type": "file",
+      "hash": "e3b0c44298fc1c14"
+    },
+    {
+      "path": "agentic/agents/README.md",
+      "type": "file",
+      "hash": "2bbb77a77ac094c9"
+    },
+    {
+      "path": "agentic/hooks",
+      "type": "dir"
+    },
+    {
+      "path": "agentic/hooks/.gitkeep",
+      "type": "file",
+      "hash": "e3b0c44298fc1c14"
+    },
+    {
+      "path": "agentic/hooks/README.md",
+      "type": "file",
+      "hash": "45f9f045de92d493"
+    },
+    {
+      "path": "agentic/tasks",
+      "type": "dir"
+    },
+    {
+      "path": "agentic/tasks/.gitkeep",
+      "type": "file",
+      "hash": "e3b0c44298fc1c14"
+    },
+    {
+      "path": "agentic/tasks/README.md",
+      "type": "file",
+      "hash": "196e43190dd7a2c9"
+    },
+    {
+      "path": "agentic/agents/planner.md",
+      "type": "file",
+      "hash": "29d103c69cb9317a"
+    },
+    {
+      "path": "agentic/agents/specificator.md",
+      "type": "file",
+      "hash": "138a9e39fb88d318"
+    },
+    {
+      "path": "agentic/skills/confluence",
+      "type": "dir"
+    },
+    {
+      "path": "agentic/skills/confluence/SKILL.md",
+      "type": "file",
+      "hash": "fe273e63d2eccfc8"
+    },
+    {
+      "path": "agentic/skills/figma",
+      "type": "dir"
+    },
+    {
+      "path": "agentic/skills/figma/SKILL.md",
+      "type": "file",
+      "hash": "b9dc1dc9a39e7121"
+    },
+    {
+      "path": "agentic/skills/jira",
+      "type": "dir"
+    },
+    {
+      "path": "agentic/skills/jira/SKILL.md",
+      "type": "file",
+      "hash": "82bf0730660b095a"
+    },
+    {
+      "path": "agentic/skills/plan",
+      "type": "dir"
+    },
+    {
+      "path": "agentic/skills/plan/SKILL.md",
+      "type": "file",
+      "hash": "32f0e571daf63695"
+    },
+    {
+      "path": "agentic/skills/spec",
+      "type": "dir"
+    },
+    {
+      "path": "agentic/skills/spec/SKILL.md",
+      "type": "file",
+      "hash": "45ccf0d750a56809"
+    },
+    {
+      "path": ".claude",
+      "type": "symlink",
+      "target": "agentic"
+    }
+  ]
+}

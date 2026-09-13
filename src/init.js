@@ -1,14 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { printConnectHint } from './connect.js';
+import { cyan, dim } from './color.js';
+import { printClaudeHint, printConnectHint } from './connect.js';
 import {
-  copyTreeIfMissing,
+  copyTree,
   createReporter,
   ensureDir,
   ensureSymlink,
   statOrNull,
   writeIfMissing,
+  writeManaged,
 } from './fsx.js';
 import {
   DEFAULT_LANGUAGE,
@@ -96,6 +98,11 @@ function scaffold(root, opts, manifest, language, mapping, roles) {
   const { reporter } = opts;
   const onFile = (file, content) => manifest.addFile(file, content);
 
+  // What each file looked like when we last wrote it. Anything still identical
+  // to that is ours to bring up to date; everything else stays as it is.
+  const recorded = readManifest(root)?.entries ?? [];
+  const knownHash = (file) => recorded.find((e) => e.path === path.relative(root, file))?.hash;
+
   if (ensureDir(path.join(root, AGENTIC_DIR), { ...opts, label: `${AGENTIC_DIR}/` }) === 'created') {
     manifest.addDir(path.join(root, AGENTIC_DIR));
   }
@@ -113,17 +120,19 @@ function scaffold(root, opts, manifest, language, mapping, roles) {
     if (readme) {
       const file = path.join(target, 'README.md');
       const body = template(readme);
-      if (writeIfMissing(file, body, { ...opts, label: `${label}/README.md` })) manifest.addFile(file, body);
+      const what = writeManaged(file, body, { ...opts, label: `${label}/README.md`, knownHash: knownHash(file) });
+      if (what === 'created' || what === 'updated') manifest.addFile(file, body);
     }
   }
 
   // Agents and skills that make the task pipeline work.
-  copyTreeIfMissing(path.join(packageRoot, 'src', 'templates', 'seed'), path.join(root, AGENTIC_DIR), {
+  copyTree(path.join(packageRoot, 'src', 'templates', 'seed'), path.join(root, AGENTIC_DIR), {
     ...opts,
     label: AGENTIC_DIR,
     onFile,
     onDir: (dir) => manifest.addDir(dir),
     transform: (content) => content.replace('{{MCP_TOOLS}}', toolsLine(mapping)),
+    knownHash,
   });
 
   const agents = path.join(root, 'AGENTS.md');
@@ -161,8 +170,27 @@ function reportDetected(servers, mapping, reporter, allRoles) {
   for (const { id, source } of servers) {
     const roles = allRoles.filter((role) => mapping[role] === id);
     if (!roles.length) continue;
-    console.log(`    ${id}  (${source})  -> ${roles.join(', ')}`);
+    console.log(`    ${cyan(id)}  ${dim(`(${source})`)}  -> ${roles.join(', ')}`);
   }
+}
+
+/**
+ * `.claude` must resolve to `agentic/` or none of this is visible to Claude Code.
+ * Returns what is in the way, or null. Looks at what is on disk, so it answers
+ * the same during a dry run.
+ */
+function claudeConflict(root) {
+  const link = path.join(root, '.claude');
+  const stat = statOrNull(link);
+  if (!stat) return null;
+
+  if (stat.isSymbolicLink()) {
+    const target = fs.readlinkSync(link);
+    const ours = path.resolve(root, target) === path.resolve(root, AGENTIC_DIR);
+    return ours ? null : { status: 'symlink', target };
+  }
+
+  return { status: stat.isDirectory() ? 'dir' : 'file' };
 }
 
 /** Ties the servers this project can already see to the roles its sources need. */
@@ -201,18 +229,23 @@ export async function init({ cwd = process.cwd(), dryRun = false, force = false,
 
   printConnectHint(sources, mapping, reporter);
 
-  const { created, skipped, warnings } = reporter.counts;
+  const { created, updated, skipped, warnings } = reporter.counts;
   console.log('');
   reporter.info(
     `${dryRun ? `dry run — ${created} would be created` : `${created} created`}, ` +
+      (updated ? `${updated} updated, ` : '') +
       `${skipped} unchanged, ${warnings} warning${warnings === 1 ? '' : 's'}`,
   );
   if (created > 0 && !dryRun) {
     reporter.info('next:');
-    console.log('    1. describe the project in AGENTS.md — Overview, Commands, Conventions');
-    console.log('    2. npx agentic-flow config — re-scan once your MCP servers are connected');
-    console.log('    3. /spec <ticket-url> — specify your first task');
+    console.log(`    ${dim('1.')} describe the project in AGENTS.md — Overview, Commands, Conventions`);
+    console.log(`    ${dim('2.')} ${cyan('npx agentic-flow config')} — re-scan once your MCP servers are connected`);
+    console.log(`    ${dim('3.')} ${cyan('/spec <ticket-url>')} — specify your first task`);
   }
+
+  // Last, and whatever the counts say: on a second run nothing is created, but
+  // the thing that stops /spec from existing is still there.
+  printClaudeHint(claudeConflict(root), reporter);
 
   return reporter.counts;
 }

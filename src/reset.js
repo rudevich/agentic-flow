@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { cyan, dim, red } from './color.js';
 import { createReporter, removeIfEmpty, removePath, statOrNull } from './fsx.js';
 import { MANIFEST_PATH, hash, readManifest } from './manifest.js';
 import { createPrompt, interactive } from './prompt.js';
@@ -117,7 +118,7 @@ export async function reset({
   console.log('');
   reporter.info(`${dryRun ? 'would remove' : 'about to remove'} ${remove.length} path(s) in ${root}:`);
   for (const entry of remove) {
-    console.log(`    ${entry.type === 'gitignore-line' ? `.gitignore: ${entry.line}` : entry.path}`);
+    console.log(`    ${red(entry.type === 'gitignore-line' ? `.gitignore: ${entry.line}` : entry.path)}`);
   }
   for (const entry of kept) reporter.skipped(entry.path, entry.reason);
   console.log('');
@@ -144,7 +145,7 @@ export async function reset({
     const prompt = createPrompt();
     let confirmed = false;
     try {
-      confirmed = await prompt.confirm('type "reset" to confirm:', 'reset');
+      confirmed = await prompt.confirm(`type ${cyan('reset')} to confirm:`, 'reset');
     } finally {
       prompt.close();
     }
@@ -195,7 +196,7 @@ export async function reset({
 
   console.log('');
   reporter.info(`${removed} removed, ${kept.length} kept`);
-  if (kept.length) reporter.info('kept files were modified after init — use --force to remove them too');
+  if (kept.length) reporter.info(dim('kept files were modified after init — use --force to remove them too'));
 
   return { removed, kept: kept.length };
 }

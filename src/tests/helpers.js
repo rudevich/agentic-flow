@@ -25,14 +25,18 @@ export function tmpProject(name = 'fixture') {
 
 /** Records what the code under test reported instead of printing it. */
 export function fakeReporter() {
-  const calls = { created: [], skipped: [], warnings: [], info: [] };
+  const calls = { created: [], updated: [], skipped: [], warnings: [], info: [] };
 
   return {
     calls,
-    counts: { created: 0, skipped: 0, warnings: 0 },
+    counts: { created: 0, updated: 0, skipped: 0, warnings: 0 },
     created(what) {
       calls.created.push(what);
       this.counts.created += 1;
+    },
+    updated(what) {
+      calls.updated.push(what);
+      this.counts.updated += 1;
     },
     skipped(what, why) {
       calls.skipped.push(why ? `${what} (${why})` : what);

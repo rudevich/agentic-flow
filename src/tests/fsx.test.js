@@ -4,13 +4,15 @@ import path from 'node:path';
 import { describe, it } from 'node:test';
 
 import {
-  copyTreeIfMissing,
+  copyTree,
   ensureDir,
+  hash,
   ensureSymlink,
   removeIfEmpty,
   removePath,
   statOrNull,
   writeIfMissing,
+  writeManaged,
 } from '../fsx.js';
 import { fakeReporter, opts, tmpDir } from './helpers.js';
 
@@ -126,7 +128,7 @@ describe('ensureSymlink', () => {
   });
 });
 
-describe('copyTreeIfMissing', () => {
+describe('copyTree', () => {
   const seed = (root) => {
     fs.mkdirSync(path.join(root, 'src', 'skills', 'spec'), { recursive: true });
     fs.writeFileSync(path.join(root, 'src', 'skills', 'spec', 'SKILL.md'), 'skill');
@@ -140,7 +142,7 @@ describe('copyTreeIfMissing', () => {
     fs.mkdirSync(dest);
     const files = [];
 
-    copyTreeIfMissing(path.join(root, 'src'), dest, {
+    copyTree(path.join(root, 'src'), dest, {
       ...opts(fakeReporter()),
       label: 'dest',
       onFile: (file) => files.push(path.relative(dest, file)),
@@ -157,7 +159,7 @@ describe('copyTreeIfMissing', () => {
     fs.mkdirSync(dest);
     fs.writeFileSync(path.join(dest, 'top.md'), 'edited by hand');
 
-    copyTreeIfMissing(path.join(root, 'src'), dest, { ...opts(fakeReporter()), label: 'dest' });
+    copyTree(path.join(root, 'src'), dest, { ...opts(fakeReporter()), label: 'dest' });
     assert.equal(fs.readFileSync(path.join(dest, 'top.md'), 'utf8'), 'edited by hand');
   });
 
@@ -167,7 +169,7 @@ describe('copyTreeIfMissing', () => {
     const dest = path.join(root, 'dest');
     fs.mkdirSync(dest);
 
-    copyTreeIfMissing(path.join(root, 'src'), dest, {
+    copyTree(path.join(root, 'src'), dest, {
       ...opts(fakeReporter()),
       label: 'dest',
       transform: (content) => content.toUpperCase(),
@@ -209,5 +211,79 @@ describe('removeIfEmpty', () => {
 
     assert.equal(removeIfEmpty(path.join(root, 'full')), false);
     assert.ok(fs.existsSync(path.join(root, 'full', 'mine.md')));
+  });
+});
+
+describe('writeManaged', () => {
+  const file = (root) => path.join(root, 'skill.md');
+  const write = (root, body) => fs.writeFileSync(file(root), body);
+  const read = (root) => fs.readFileSync(file(root), 'utf8');
+
+  it('creates what is not there', () => {
+    const root = tmpDir();
+    const reporter = fakeReporter();
+
+    assert.equal(writeManaged(file(root), 'v2', opts(reporter)), 'created');
+    assert.equal(read(root), 'v2');
+  });
+
+  it('says nothing useful when the file already matches', () => {
+    const root = tmpDir();
+    write(root, 'v2');
+    const reporter = fakeReporter();
+
+    assert.equal(writeManaged(file(root), 'v2', opts(reporter, { knownHash: hash('v2') })), 'skipped');
+    assert.ok(reporter.has('skipped', 'already up to date'));
+  });
+
+  it('updates a file nobody touched since we wrote it', () => {
+    const root = tmpDir();
+    write(root, 'v1');
+    const reporter = fakeReporter();
+
+    assert.equal(writeManaged(file(root), 'v2', opts(reporter, { knownHash: hash('v1') })), 'updated');
+    assert.equal(read(root), 'v2');
+    assert.equal(reporter.counts.updated, 1);
+  });
+
+  it('writes nothing on a dry run', () => {
+    const root = tmpDir();
+    write(root, 'v1');
+
+    const reporter = fakeReporter();
+    const result = writeManaged(file(root), 'v2', { ...opts(reporter, { knownHash: hash('v1') }), dryRun: true });
+
+    assert.equal(result, 'updated');
+    assert.equal(read(root), 'v1');
+  });
+
+  it('keeps an edited file quietly when the package has nothing newer', () => {
+    const root = tmpDir();
+    write(root, 'v2 plus my own line');
+    const reporter = fakeReporter();
+
+    // knownHash is the hash of v2 — the version we wrote and still ship.
+    assert.equal(writeManaged(file(root), 'v2', opts(reporter, { knownHash: hash('v2') })), 'skipped');
+    assert.equal(read(root), 'v2 plus my own line');
+    assert.equal(reporter.counts.warnings, 0);
+  });
+
+  it('warns when a file was edited and a newer version exists', () => {
+    const root = tmpDir();
+    write(root, 'v1 plus my own line');
+    const reporter = fakeReporter();
+
+    assert.equal(writeManaged(file(root), 'v2', opts(reporter, { knownHash: hash('v1') })), 'conflict');
+    assert.equal(read(root), 'v1 plus my own line');
+    assert.ok(reporter.has('warnings', 'newer version'));
+  });
+
+  it('will not touch a file it has no record of writing', () => {
+    const root = tmpDir();
+    write(root, 'someone else wrote this');
+    const reporter = fakeReporter();
+
+    assert.equal(writeManaged(file(root), 'v2', opts(reporter)), 'skipped');
+    assert.equal(read(root), 'someone else wrote this');
   });
 });

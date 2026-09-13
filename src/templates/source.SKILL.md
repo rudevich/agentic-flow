@@ -1,56 +1,75 @@
 ---
 name: {{NAME}}
-description: Read a {{TITLE}} page into agentic/tasks/<KEY>/{{WRITES}} and hand back the links it carries. Use when the spec skill routes a {{ROLE}} link here, or when asked to snapshot one on its own.
+description: Read a {{TITLE}} page into agentic/tasks/<KEY>/{{WRITES}} and report the links it contains. Use when the spec skill sends a {{ROLE}} link here, or when asked to save a copy of one.
 ---
 
-# Reading {{TITLE}}
+# Read {{TITLE}}
 
-A source skill. `spec` routes here with a link found in the ticket or in a
-document already read — it never searches for a page by title.
+You are given one {{TITLE}} URL. You copy what it says into a file. You report
+the links you found. You do nothing else.
 
-## Recognises
+The `spec` skill gives you a link it found in the ticket, or in a page it had
+already read. Never look for a page yourself.
 
-A URL containing: {{MATCHES}}
+## Which URLs are yours
 
-## Role
+A URL containing any of: {{MATCHES}}
 
-`{{ROLE}}`. The `MCP roles` table in `AGENTS.md` names the server that fills it —
-use that server's tools. Never `WebFetch` a page behind auth: a login page reads
-exactly like an empty one.
+## Which tool to use
 
-## Reads
+Your role is `{{ROLE}}`. The `MCP roles` table in `AGENTS.md` says which MCP
+server fills that role. Use that server's tools.
 
-<!-- TODO: what to pull out, and what to leave. Keep the structure requirements
-     will cite later — section numbers, table rows, verbatim copy. -->
+If the page requires a login, do not use `WebFetch`. It would return the login
+page, and a login page looks like a page with nothing in it.
 
-## Writes
+## What to copy
 
-`{{WRITES}}`, opening with the ticket URL and the time you fetched the page:
+<!-- TODO: answer two questions here.
+     1. What do you pull out of this page? Name the parts.
+     2. What do you leave behind?
+     Keep the structure that requirements will point at later: section numbers,
+     table rows, text word for word. -->
+
+## What to write
+
+Write `{{WRITES}}`. Start it with the ticket URL, the page URL and the time you
+read it.
 
 ```markdown
 # {{TITLE}} — <title>
 
-**Ticket:** <ticket url>
+**Ticket:** https://co.atlassian.net/browse/PROJ-123
 **Source:** <url>
-_fetched yy-mm-dd hh:mm_
+_fetched 2026-09-13 14:20_
 
 <the page>
 ```
 
-Several links of this kind → one section per page in the same file, each with
-its own `**Source:**`.
+If you were given more than one link of this kind, put one section per page in
+this same file. Each section gets its own `**Source:**` line.
 
-## Hands back
+## What to report back
 
-<!-- TODO: which links found here are worth following — or "nothing", if this is
-     the end of the chain. Set `links` below to match. -->
+<!-- TODO: answer one question here.
+     Which links found on this page should be opened by another source skill?
+     If none, write "Nothing. The chain of sources ends here." and set
+     `links` to `stop` in the table below. -->
 
-## Unavailable
+Only report links that are written on the page. Never build a URL yourself.
 
-No `{{ROLE}}` server, or the page will not load → hand back
-`unavailable — <reason>` so `spec` records it in `Sources`, and let the run
-continue without it. Never describe a page you could not open, and never
-reconstruct it from the other sources.
+## If you cannot read the page
+
+Two cases:
+
+- there is no MCP server for the `{{ROLE}}` role;
+- the URL does not load.
+
+Report `unavailable — <reason>` back to `spec`, which writes that into the
+`Sources` table. The run continues without this source.
+
+Never describe a page you could not open. Never rebuild it from the other
+sources. What this page would have answered belongs under `Missing in sources`.
 
 ## Source
 

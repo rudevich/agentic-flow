@@ -1,14 +1,11 @@
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { statOrNull } from './fsx.js';
+import { hash, statOrNull } from './fsx.js';
 
 export const MANIFEST_PATH = path.join('agentic', '.agentic-manifest.json');
 
-export function hash(content) {
-  return crypto.createHash('sha256').update(content).digest('hex').slice(0, 16);
-}
+export { hash };
 
 /**
  * Records what init created, so reset can undo exactly that and nothing else.

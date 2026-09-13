@@ -36,8 +36,10 @@ project: `npm init -y` in a temp dir, then `npm i -D file:/path/to/this/repo`.
 ## Conventions
 
 - Node >= 18, ESM, **no runtime dependencies** — `node:*` builtins only.
-- Nothing in `src/` overwrites or deletes a user file. Conflicts → warning with
-  manual fix. `--force` only repoints a symlink.
+- Nothing in `src/` overwrites or deletes a user file. A generated file is
+  rewritten only while it still matches its hash in the manifest — byte for byte
+  what we wrote. Conflicts → warning with manual fix. `--force` only repoints a
+  symlink.
 - `src/postinstall.js` never fails an install and never edits the host
   `package.json`: every path exits 0.
 - `reset` deletes only what `agentic/.agentic-manifest.json` records, never a
