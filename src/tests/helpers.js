@@ -16,6 +16,13 @@ export function tmpDir(prefix = 'agentic-test-') {
   return dir;
 }
 
+// The scaffold looks for MCP servers in the user's home directory. Whoever runs
+// the suite has their own servers there, so point HOME at an empty directory:
+// the tests must give the same answer on every machine.
+const fakeHome = tmpDir('agentic-home-');
+process.env.HOME = fakeHome;
+process.env.USERPROFILE = fakeHome;
+
 /** A project root with a package.json, since findProjectRoot needs one. */
 export function tmpProject(name = 'fixture') {
   const dir = tmpDir();
@@ -59,7 +66,15 @@ export function opts(reporter, extra = {}) {
   return { dryRun: false, force: false, reporter, ...extra };
 }
 
-/** Runs `fn` with console output swallowed; returns what it printed. */
+const ANSI = /\u001b\[[0-9;]*m/g;
+
+/**
+ * Colour depends on whether stdout is a terminal, and tests must not. Strip the
+ * escapes before anything is matched against the output.
+ */
+export const plain = (text) => text.replace(ANSI, '');
+
+/** Runs `fn` with console output swallowed; returns what it printed, uncoloured. */
 export async function silenced(fn) {
   const original = { log: console.log, warn: console.warn, error: console.error };
   const output = [];
@@ -71,7 +86,7 @@ export async function silenced(fn) {
 
   try {
     const value = await fn();
-    return { value, output: output.join('\n') };
+    return { value, output: plain(output.join('\n')) };
   } finally {
     Object.assign(console, original);
   }

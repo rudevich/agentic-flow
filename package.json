@@ -2,6 +2,27 @@
   "name": "@rudevich/agentic-flow",
   "version": "0.1.5",
   "description": "Scaffolds an agentic/ directory (skills, agents, hooks, tasks) with .claude and CLAUDE.md symlinks, and seeds a ticket-to-subtasks pipeline",
+  "keywords": [
+    "claude-code",
+    "agents",
+    "skills",
+    "mcp",
+    "scaffold",
+    "agents-md",
+    "jira",
+    "confluence",
+    "figma"
+  ],
+  "homepage": "https://github.com/rudevich/agentic-flow#readme",
+  "bugs": {
+    "url": "https://github.com/rudevich/agentic-flow/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rudevich/agentic-flow.git"
+  },
+  "license": "MIT",
+  "author": "Alexander Rudevich <rudevich@gmail.com>",
   "type": "module",
   "engines": {
     "node": ">=18"
@@ -19,7 +40,8 @@
     "access": "public"
   },
   "scripts": {
-    "test": "node --test \"src/tests/*.test.js\"",
+    "test": "node --test",
+    "prepublishOnly": "npm test",
     "postinstall": "node src/postinstall.js"
   }
 }

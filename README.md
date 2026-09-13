@@ -21,7 +21,7 @@ npx agentic-flow init
 
 ```bash
 npm i -D file:../agentic-flow
-npm i -D git+ssh://git@github.com/<owner>/<repo>.git
+npm i -D git+ssh://git@github.com/rudevich/agentic-flow.git
 ```
 
 ## Что создаёт `agentic-flow init`

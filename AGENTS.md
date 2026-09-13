@@ -23,6 +23,7 @@ only prints the command to run. Everything init creates is idempotent, and
 
 | Task | Command |
 | --- | --- |
+| Run the tests | `npm test` |
 | Scaffold / re-check this repo | `npx agentic-flow init` |
 | Preview without writing | `node bin/agentic-flow.js init --dry-run` |
 | Undo the scaffold | `node bin/agentic-flow.js reset --dry-run` |
@@ -30,8 +31,14 @@ only prints the command to run. Everything init creates is idempotent, and
 | Syntax check | `node --check src/*.js bin/agentic-flow.js` |
 | See what would ship | `npm pack --dry-run` |
 
-No build step, no test runner. Verify by running the CLI against a throwaway
-project: `npm init -y` in a temp dir, then `npm i -D file:/path/to/this/repo`.
+No build step. `npm test` is `node --test` with no path argument, and that is
+deliberate: a positional argument means "a directory to scan" on Node 18–21 and
+"a file to run" on Node 22+, so neither form works everywhere. The suite needs
+Node >= 18.7 for `describe`/`it`; the package itself runs on Node >= 18.
+
+Behaviour that tests cannot reach — symlinks, prompts, a real npm install — is
+verified against a throwaway project: `npm init -y` in a temp dir, then
+`npm i -D file:/path/to/this/repo`.
 
 ## Conventions
 

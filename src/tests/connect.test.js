@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { connectHint } from '../connect.js';
+import { plain } from './helpers.js';
 
 const SOURCES = [
   { name: 'jira', role: 'tracker', server: ['jira', 'atlassian'], auth: 'token' },
@@ -9,7 +10,7 @@ const SOURCES = [
   { name: 'figma', role: 'design', server: ['figma'], auth: 'none' },
 ];
 
-const text = (mapping) => connectHint(SOURCES, mapping).join('\n');
+const text = (mapping) => plain(connectHint(SOURCES, mapping).join('\n'));
 
 describe('connectHint', () => {
   it('says nothing when every role is filled', () => {
@@ -46,7 +47,7 @@ describe('connectHint', () => {
   });
 
   it('explains a role invented by a source it has never seen', () => {
-    const hint = connectHint([{ name: 'notion', role: 'research', server: ['notion'], auth: 'token' }], {}).join('\n');
+    const hint = plain(connectHint([{ name: 'notion', role: 'research', server: ['notion'], auth: 'token' }], {}).join('\n'));
 
     assert.match(hint, /no MCP server for: research/);
     assert.match(hint, /research\s+<- notion/);
