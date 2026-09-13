@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { BUILTIN_ROLES, parseSource, readSources, rolesOf, sourceFor } from '../sources.js';
+import { BUILTIN_ROLES } from '../constants.js';
+import { parseSource, readSources, rolesOf, sourceFor } from '../sources.js';
 import { fakeReporter, tmpProject } from './helpers.js';
 
 const BLOCK = `

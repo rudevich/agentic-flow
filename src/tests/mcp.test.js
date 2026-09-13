@@ -84,6 +84,21 @@ describe('detectServers', () => {
     ]);
   });
 
+  // Personal settings go in the local file, and a plugin enabled there counts.
+  it('reads plugins enabled in settings.local.json too', () => {
+    const home = tmpDir();
+    writeJson(path.join(home, '.claude', 'settings.local.json'), {
+      enabledPlugins: { 'product-management@official': true },
+    });
+    writeJson(
+      path.join(home, '.claude', 'plugins', 'marketplaces', 'official', 'external_plugins', 'product-management', '.mcp.json'),
+      { figma: { url: 'y' } },
+    );
+
+    const ids = detectServers(tmpProject(), { home }).map(({ id }) => id);
+    assert.deepEqual(ids, ['plugin:product-management:figma']);
+  });
+
   it('skips plugins that are turned off', () => {
     const home = tmpDir();
     writeJson(path.join(home, '.claude', 'settings.json'), {

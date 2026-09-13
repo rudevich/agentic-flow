@@ -3,9 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { init } from '../init.js';
-import { MANIFEST_PATH, hash, readManifest } from '../manifest.js';
-import { ROLES_MARKER } from '../mcp.js';
+import { config, init } from '../init.js';
+import { MANIFEST_PATH, ROLES_MARKER } from '../constants.js';
+import { readManifest } from '../manifest.js';
+import { hash } from '../utils.js';
+import { ownPackage } from '../project.js';
+import { addSource } from '../source.js';
 import { silenced, tmpProject, writeJson } from './helpers.js';
 
 const run = (cwd, options = {}) => silenced(() => init({ cwd, ...options }));
@@ -91,6 +94,52 @@ describe('init', () => {
     const { output } = await run(root);
 
     assert.doesNotMatch(output, /describe the project in AGENTS\.md/);
+  });
+
+  // Rewriting a block inside AGENTS.md is not creating anything, and a project
+  // that has been scaffolded for months should not be told to start it.
+  it('does not call a rewritten roles table a first run', async () => {
+    const root = tmpProject();
+    await run(root);
+    const stale = read(root, 'AGENTS.md').replace(/\| tracker \|[^\n]*\n/, '| tracker | `gone` |\n');
+    fs.writeFileSync(path.join(root, 'AGENTS.md'), stale);
+
+    const { value, output } = await run(root);
+
+    assert.equal(value.created, 0);
+    assert.equal(value.updated, 1);
+    assert.doesNotMatch(output, /describe the project in AGENTS\.md/);
+    assert.match(output, /restart your Claude session/);
+  });
+
+  // Every path this tool writes runs through agentic/. A file standing there
+  // used to take the whole run down with a raw ENOTDIR.
+  it('stops with a warning when agentic/ is a file', async () => {
+    const root = tmpProject();
+    fs.writeFileSync(path.join(root, 'agentic'), 'not a directory\n');
+
+    const { value, output } = await run(root);
+
+    assert.match(output, /agentic\/ exists but is not a directory/);
+    assert.equal(value.created, 0);
+    // nothing was written beside it either
+    assert.equal(fs.existsSync(path.join(root, 'AGENTS.md')), false);
+    assert.equal(read(root, 'agentic'), 'not a directory\n');
+  });
+
+  it('crashes on nothing when a managed file turned into a directory', async () => {
+    const root = tmpProject();
+    await run(root);
+    const skill = path.join(root, 'agentic', 'skills', 'spec', 'SKILL.md');
+    fs.rmSync(skill);
+    fs.mkdirSync(skill);
+
+    const { value, output } = await run(root);
+
+    assert.match(output, /not a regular file/);
+    assert.ok(value.warnings >= 1);
+    // and the rest of the run still happened
+    assert.match(output, /agentic\/skills\/plan\/SKILL\.md/);
   });
 
   it('says loudly that an existing .claude directory blocks everything', async () => {
@@ -352,5 +401,218 @@ describe('init after the package was upgraded', () => {
 
     assert.match(output, /would update/);
     assert.equal(read(root, SKILL), 'the old spec skill\n');
+  });
+
+  // Claude Code reads skills and agents when a session starts, so a refreshed
+  // file does nothing until that session is started again.
+  it('asks for a session restart when the run only updated things', async () => {
+    const root = tmpProject();
+    await run(root);
+    pretendOlder(root, SKILL, 'the old spec skill\n');
+
+    const { value, output } = await run(root);
+
+    assert.equal(value.created, 0);
+    assert.match(output, /restart your Claude session/);
+  });
+
+  it('gives the three-step start instead on a first run', async () => {
+    const { output } = await run(tmpProject());
+
+    assert.doesNotMatch(output, /restart your Claude session/);
+    assert.match(output, /specify your first task/);
+  });
+
+  it('asks for nothing when the run changed nothing at all', async () => {
+    const root = tmpProject();
+    await run(root);
+
+    const { output } = await run(root);
+
+    assert.doesNotMatch(output, /next:/);
+  });
+});
+
+describe('init after the package stopped shipping a file', () => {
+  const RETIRED = path.join('agentic', 'skills', 'retired', 'SKILL.md');
+
+  /** A file an older version of the package wrote, recorded as ours. */
+  const pretendShipped = (root, file, body) => {
+    const target = path.join(root, file);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, body);
+
+    const manifest = readManifest(root);
+    manifest.entries.push({ path: file, type: 'file', hash: hash(body) });
+    fs.writeFileSync(path.join(root, MANIFEST_PATH), JSON.stringify(manifest, null, 2) + '\n');
+  };
+
+  it('removes it, together with the directory it was alone in', async () => {
+    const root = tmpProject();
+    await run(root);
+    pretendShipped(root, RETIRED, 'the retired skill\n');
+
+    const { value, output } = await run(root);
+
+    assert.equal(value.removed, 2); // the file, then its directory
+    assert.match(output, /removed {2}agentic\/skills\/retired\/SKILL\.md/);
+    assert.equal(fs.existsSync(path.join(root, 'agentic', 'skills', 'retired')), false);
+    assert.equal(readManifest(root).entries.some((e) => e.path === RETIRED), false);
+  });
+
+  it('keeps one you edited, and says why', async () => {
+    const root = tmpProject();
+    await run(root);
+    pretendShipped(root, RETIRED, 'the retired skill\n');
+    fs.writeFileSync(path.join(root, RETIRED), 'my own version\n');
+
+    const { value, output } = await run(root);
+
+    assert.equal(value.removed, 0);
+    assert.equal(value.warnings, 1);
+    assert.match(output, /the package no longer ships it/);
+    assert.equal(read(root, RETIRED), 'my own version\n');
+    // still ours to remove later, so reset --force can still account for it
+    assert.ok(readManifest(root).entries.some((e) => e.path === RETIRED));
+  });
+
+  it('says nothing about one you already deleted, but stops recording it', async () => {
+    const root = tmpProject();
+    await run(root);
+    pretendShipped(root, RETIRED, 'the retired skill\n');
+    fs.rmSync(path.join(root, 'agentic', 'skills', 'retired'), { recursive: true });
+
+    const { value } = await run(root);
+
+    assert.equal(value.removed, 0);
+    assert.equal(value.warnings, 0);
+    assert.equal(readManifest(root).entries.some((e) => e.path === RETIRED), false);
+  });
+
+  // Only a hand-edited manifest gets here. Without a hash nothing proves the
+  // file is ours, so it stays — quietly, since the user did not do this.
+  it('leaves it alone when the manifest recorded no hash for it', async () => {
+    const root = tmpProject();
+    await run(root);
+    pretendShipped(root, RETIRED, 'the retired skill\n');
+    const manifest = readManifest(root);
+    delete manifest.entries.find((e) => e.path === RETIRED).hash;
+    fs.writeFileSync(path.join(root, MANIFEST_PATH), JSON.stringify(manifest, null, 2) + '\n');
+
+    const { value } = await run(root);
+
+    assert.equal(value.removed, 0);
+    assert.equal(value.warnings, 0);
+    assert.ok(fs.existsSync(path.join(root, RETIRED)));
+  });
+
+  it('warns instead of deleting when a directory stands where the file did', async () => {
+    const root = tmpProject();
+    await run(root);
+    pretendShipped(root, RETIRED, 'the retired skill\n');
+    fs.rmSync(path.join(root, RETIRED));
+    fs.mkdirSync(path.join(root, RETIRED));
+
+    const { value, output } = await run(root);
+
+    assert.equal(value.removed, 0);
+    assert.match(output, /no longer a regular file/);
+    assert.ok(fs.statSync(path.join(root, RETIRED)).isDirectory());
+  });
+
+  it('deletes nothing during a dry run', async () => {
+    const root = tmpProject();
+    await run(root);
+    pretendShipped(root, RETIRED, 'the retired skill\n');
+
+    const { output } = await run(root, { dryRun: true });
+
+    assert.match(output, /would remove {2}agentic\/skills\/retired\/SKILL\.md/);
+    assert.equal(read(root, RETIRED), 'the retired skill\n');
+  });
+
+  it('never touches a file the package still ships', async () => {
+    const root = tmpProject();
+    await run(root);
+
+    const { value } = await run(root);
+
+    assert.equal(value.removed, 0);
+    assert.ok(fs.existsSync(path.join(root, 'agentic', 'skills', 'spec', 'SKILL.md')));
+    assert.ok(fs.existsSync(path.join(root, 'agentic', 'skills', '.gitkeep')));
+    assert.ok(fs.existsSync(path.join(root, 'AGENTS.md')));
+  });
+
+  // A skill you declared yourself was never in the manifest, so prune cannot
+  // see it — the package never shipped it and never will.
+  it('never removes a source skill you added yourself', async () => {
+    const root = tmpProject();
+    await run(root);
+    await silenced(() => addSource({ cwd: root, name: 'notion', matches: 'notion.so' }));
+
+    await run(root);
+
+    assert.ok(fs.existsSync(path.join(root, 'agentic', 'skills', 'notion', 'SKILL.md')));
+  });
+
+  it('leaves a directory that still holds something of yours', async () => {
+    const root = tmpProject();
+    await run(root);
+    pretendShipped(root, RETIRED, 'the retired skill\n');
+    fs.writeFileSync(path.join(root, 'agentic', 'skills', 'retired', 'notes.md'), 'mine\n');
+
+    await run(root);
+
+    assert.equal(fs.existsSync(path.join(root, RETIRED)), false);
+    assert.equal(read(root, 'agentic', 'skills', 'retired', 'notes.md'), 'mine\n');
+  });
+});
+
+describe('the version that wrote the scaffold', () => {
+  it('is recorded in the manifest', async () => {
+    const root = tmpProject();
+    await run(root);
+
+    assert.equal(readManifest(root).packageVersion, ownPackage().version);
+  });
+
+  it('is announced when an older one wrote it', async () => {
+    const root = tmpProject();
+    await run(root);
+    const manifest = readManifest(root);
+    fs.writeFileSync(
+      path.join(root, MANIFEST_PATH),
+      JSON.stringify({ ...manifest, packageVersion: '0.0.1' }, null, 2) + '\n',
+    );
+
+    const { output } = await run(root);
+
+    assert.match(output, new RegExp(`upgrading 0\\.0\\.1 -> ${ownPackage().version.replace(/\./g, '\\.')}`));
+  });
+
+  // `init` tells people to run `config` next, so config must not be able to
+  // erase the difference that makes the upgrade visible.
+  it('survives a config run in between', async () => {
+    const root = tmpProject();
+    await run(root);
+    const manifest = readManifest(root);
+    fs.writeFileSync(
+      path.join(root, MANIFEST_PATH),
+      JSON.stringify({ ...manifest, packageVersion: '0.0.1' }, null, 2) + '\n',
+    );
+
+    await silenced(() => config({ cwd: root }));
+    const { output } = await run(root);
+
+    assert.match(output, /upgrading 0\.0\.1 ->/);
+  });
+
+  it('is not announced on a first run, or on a run of the same version', async () => {
+    const root = tmpProject();
+    const first = await run(root);
+    const second = await run(root);
+
+    assert.doesNotMatch(first.output, /upgrading/);
+    assert.doesNotMatch(second.output, /upgrading/);
   });
 });

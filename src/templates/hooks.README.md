@@ -1,7 +1,7 @@
 # Hooks
 
-Executable scripts run by the harness around tool calls and session events —
-format after an edit, block a forbidden command, notify on stop.
+Executable scripts run by the harness around tool calls and session events.
+Examples: format after an edit, block a forbidden command, notify on stop.
 
 ```
 hooks/
@@ -24,4 +24,4 @@ hooks/
 ```
 
 - Event payload arrives as JSON on stdin.
-- Non-zero exit + stderr → that output goes back to the agent.
+- A non-zero exit sends whatever the script wrote to stderr back to the agent.

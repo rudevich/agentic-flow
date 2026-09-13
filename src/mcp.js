@@ -2,18 +2,12 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { BUILTIN_ROLES, BUILTIN_SOURCES, rolesOf } from './sources.js';
+import { BUILTIN_ROLES, BUILTIN_SOURCES, CLAUDE_DIR, ROLES_MARKER } from './constants.js';
+import { rolesOf } from './sources.js';
+import { readJson } from './utils.js';
 
-const MARKER = '<!-- agentic:mcp-roles -->';
-
-/** Reads JSON, or null for anything unreadable — a broken foreign config is not our problem. */
-function readJson(file) {
-  try {
-    return JSON.parse(fs.readFileSync(file, 'utf8'));
-  } catch {
-    return null;
-  }
-}
+/** Where Claude Code keeps its own configuration, inside the user's home. */
+const claudeHome = (home, ...parts) => path.join(home, CLAUDE_DIR, ...parts);
 
 /**
  * Server maps come in two shapes: `{ mcpServers: {…} }` in Claude's own configs,
@@ -27,19 +21,21 @@ function serverNames(data) {
 }
 
 function pluginServers(home) {
-  const settings = readJson(path.join(home, '.claude', 'settings.json')) ?? {};
-  const enabled = Object.entries(settings.enabledPlugins ?? {})
+  // Both files, for the same reason detectServers reads both: a plugin turned on
+  // for this machine alone lands in the local one.
+  const enabledIn = (file) => Object.entries(readJson(claudeHome(home, file))?.enabledPlugins ?? {});
+  const enabled = [...enabledIn('settings.json'), ...enabledIn('settings.local.json')]
     .filter(([, on]) => on)
     .map(([key]) => key.split('@')[0]);
 
-  const marketplaces = path.join(home, '.claude', 'plugins', 'marketplaces');
+  const marketplaces = claudeHome(home, 'plugins', 'marketplaces');
   const found = [];
 
   for (const plugin of enabled) {
     for (const dir of ['external_plugins', 'plugins']) {
-      const file = path.join(marketplaces, '*', dir, plugin, '.mcp.json');
-      for (const resolved of expandStar(file)) {
-        for (const name of serverNames(readJson(resolved))) {
+      // The marketplace directory in the middle is whatever the user installed from.
+      for (const file of fs.globSync(path.join(marketplaces, '*', dir, plugin, '.mcp.json'))) {
+        for (const name of serverNames(readJson(file))) {
           found.push({ id: `plugin:${plugin}:${name}`, source: 'plugin' });
         }
       }
@@ -106,25 +102,6 @@ function desktopPlugins(home) {
   return found;
 }
 
-/** One `*` segment only — enough for the marketplaces layout, no glob dependency. */
-function expandStar(pattern) {
-  const [head, tail] = pattern.split('*');
-  // `head` ends with the separator, and path.dirname would climb one too far.
-  const base = head.endsWith(path.sep) ? head.slice(0, -1) : path.dirname(head);
-
-  let entries;
-  try {
-    entries = fs.readdirSync(base, { withFileTypes: true });
-  } catch {
-    return [];
-  }
-
-  return entries
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => path.join(base, entry.name, tail))
-    .filter((file) => fs.existsSync(file));
-}
-
 /**
  * Every MCP server this project could already reach, nearest scope first.
  * Duplicate ids collapse onto the closest one.
@@ -146,7 +123,7 @@ export function detectServers(root, { home = os.homedir() } = {}) {
   }
 
   for (const file of ['settings.json', 'settings.local.json']) {
-    const data = readJson(path.join(home, '.claude', file));
+    const data = readJson(claudeHome(home, file));
     for (const name of serverNames({ mcpServers: data?.mcpServers })) {
       found.push({ id: name, source: 'user' });
     }
@@ -190,10 +167,8 @@ export function mapRoles(servers, sources = BUILTIN_SOURCES) {
 
 export function rolesBlock(mapping, roles = BUILTIN_ROLES) {
   const rows = roles.map((role) => `| ${role} | ${mapping[role] ? `\`${mapping[role]}\`` : '— (not connected)'} |`);
-  return [MARKER, '| Role | Server |', '| --- | --- |', ...rows].join('\n');
+  return [ROLES_MARKER, '| Role | Server |', '| --- | --- |', ...rows].join('\n');
 }
-
-export const ROLES_MARKER = MARKER;
 
 const BASE_TOOLS = ['Read', 'Grep', 'Glob', 'Write'];
 

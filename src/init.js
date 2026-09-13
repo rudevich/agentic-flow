@@ -4,35 +4,40 @@ import path from 'node:path';
 import { cyan, dim } from './color.js';
 import { printClaudeHint, printConnectHint } from './connect.js';
 import {
+  AGENTIC_DIR,
+  AGENTS_FILE,
+  CLAUDE_DIR,
+  CLAUDE_FILE,
+  GITIGNORE_FILE,
+  LANGUAGE_MARKER,
+  ROLES_MARKER,
+  SPECIFICATOR_PATH,
+} from './constants.js';
+import {
   copyTree,
   createReporter,
   ensureDir,
   ensureSymlink,
+  inside,
+  removeIfEmpty,
+  removePath,
   statOrNull,
   writeIfMissing,
   writeManaged,
 } from './fsx.js';
 import {
   DEFAULT_LANGUAGE,
-  MARKER,
   applyBlock,
   applyDocLanguage,
   languageBlock,
   parseLang,
 } from './docs.js';
-import {
-  ROLES_MARKER,
-  classify,
-  detectServers,
-  mapRoles,
-  rolesBlock,
-  toolsLine,
-} from './mcp.js';
+import { classify, detectServers, mapRoles, rolesBlock, toolsLine } from './mcp.js';
 import { readSources, rolesOf } from './sources.js';
-import { createManifest, hash, readManifest } from './manifest.js';
-import { findProjectRoot, packageRoot, projectName } from './project.js';
+import { createManifest, readManifest } from './manifest.js';
+import { findProjectRoot, ownPackage, projectName } from './project.js';
+import { TEMPLATES_DIR, fill, hash, readTemplate } from './utils.js';
 
-const AGENTIC_DIR = 'agentic';
 const SUBDIRS = [
   ['skills', 'skills.README.md'],
   ['agents', 'agents.README.md'],
@@ -40,37 +45,31 @@ const SUBDIRS = [
   ['tasks', 'tasks.README.md'],
 ];
 
-function template(name) {
-  return fs.readFileSync(path.join(packageRoot, 'src', 'templates', name), 'utf8');
-}
-
 /** Warns when .gitignore would keep the .claude symlink out of the repository. */
 function checkGitignore(root, reporter) {
-  const gitignore = path.join(root, '.gitignore');
+  const gitignore = path.join(root, GITIGNORE_FILE);
   if (!fs.existsSync(gitignore)) return;
 
   const ignored = fs
     .readFileSync(gitignore, 'utf8')
     .split('\n')
     .map((line) => line.trim())
-    .some((line) => ['.claude', '.claude/', '/.claude', '/.claude/'].includes(line));
+    .some((line) => [CLAUDE_DIR, `${CLAUDE_DIR}/`, `/${CLAUDE_DIR}`, `/${CLAUDE_DIR}/`].includes(line));
 
   if (ignored) {
     reporter.warn(
-      '.gitignore ignores .claude, so the symlink will not be committed',
+      `${GITIGNORE_FILE} ignores ${CLAUDE_DIR}, so the symlink will not be committed`,
       'drop that line — the symlink is meant to be shared with the repository',
     );
   }
 }
-
-const SPECIFICATOR = path.join(AGENTIC_DIR, 'agents', 'specificator.md');
 
 /**
  * Keeps the specificator's allowlist in step with the servers that actually
  * exist. Same rule as .mcp.json: rewrite only what we wrote and nobody edited.
  */
 export function applyToolsLine(root, mapping, { dryRun, reporter }, manifest) {
-  const file = path.join(root, SPECIFICATOR);
+  const file = path.join(root, SPECIFICATOR_PATH);
   const stat = statOrNull(file);
   if (!stat) return;
 
@@ -80,10 +79,10 @@ export function applyToolsLine(root, mapping, { dryRun, reporter }, manifest) {
 
   if (updated === raw) return;
 
-  const knownHash = readManifest(root)?.entries.find((e) => e.path === SPECIFICATOR)?.hash;
+  const knownHash = readManifest(root)?.entries.find((e) => e.path === SPECIFICATOR_PATH)?.hash;
   if (knownHash && hash(raw) !== knownHash) {
     reporter.warn(
-      `${SPECIFICATOR} was edited by hand — left untouched`,
+      `${SPECIFICATOR_PATH} was edited by hand — left untouched`,
       `set its allowlist yourself:  ${line}`,
     );
     return;
@@ -91,21 +90,31 @@ export function applyToolsLine(root, mapping, { dryRun, reporter }, manifest) {
 
   if (!dryRun) fs.writeFileSync(file, updated);
   manifest.addFile(file, updated);
-  reporter.created(`${SPECIFICATOR}: tools`);
+  reporter.updated(`${SPECIFICATOR_PATH}: tools`);
 }
 
-function scaffold(root, opts, manifest, language, mapping, roles) {
+function scaffold(root, opts, manifest, language, mapping, roles, seen) {
   const { reporter } = opts;
-  const onFile = (file, content) => manifest.addFile(file, content);
+
+  // Two different questions. `seen` is every file this version of the package
+  // has an opinion about, written or not — anything in the manifest and not in
+  // here was dropped from the package. The manifest records only what we wrote.
+  const onFile = (file, content, what) => {
+    seen.add(path.relative(root, file));
+    if (what === 'created' || what === 'updated') manifest.addFile(file, content);
+  };
 
   // What each file looked like when we last wrote it. Anything still identical
   // to that is ours to bring up to date; everything else stays as it is.
   const recorded = readManifest(root)?.entries ?? [];
   const knownHash = (file) => recorded.find((e) => e.path === path.relative(root, file))?.hash;
 
-  if (ensureDir(path.join(root, AGENTIC_DIR), { ...opts, label: `${AGENTIC_DIR}/` }) === 'created') {
-    manifest.addDir(path.join(root, AGENTIC_DIR));
-  }
+  // Everything else lives under it, so there is nothing to try if it is blocked.
+  // ensureDir has already said what is wrong and how to fix it.
+  const agenticDir = path.join(root, AGENTIC_DIR);
+  const madeAgentic = ensureDir(agenticDir, { ...opts, label: `${AGENTIC_DIR}/` });
+  if (madeAgentic === 'blocked') return false;
+  if (madeAgentic === 'created') manifest.addDir(agenticDir);
 
   for (const [dir, readme] of SUBDIRS) {
     const target = path.join(root, AGENTIC_DIR, dir);
@@ -115,34 +124,35 @@ function scaffold(root, opts, manifest, language, mapping, roles) {
     manifest.addDir(target);
 
     const keep = path.join(target, '.gitkeep');
-    if (writeIfMissing(keep, '', { ...opts, label: `${label}/.gitkeep` })) manifest.addFile(keep, '');
+    const madeKeep = writeIfMissing(keep, '', { ...opts, label: `${label}/.gitkeep` });
+    onFile(keep, '', madeKeep ? 'created' : 'skipped');
 
     if (readme) {
       const file = path.join(target, 'README.md');
-      const body = template(readme);
-      const what = writeManaged(file, body, { ...opts, label: `${label}/README.md`, knownHash: knownHash(file) });
-      if (what === 'created' || what === 'updated') manifest.addFile(file, body);
+      const body = readTemplate(readme);
+      onFile(file, body, writeManaged(file, body, { ...opts, label: `${label}/README.md`, knownHash: knownHash(file) }));
     }
   }
 
   // Agents and skills that make the task pipeline work.
-  copyTree(path.join(packageRoot, 'src', 'templates', 'seed'), path.join(root, AGENTIC_DIR), {
+  copyTree(path.join(TEMPLATES_DIR, 'seed'), path.join(root, AGENTIC_DIR), {
     ...opts,
     label: AGENTIC_DIR,
     onFile,
     onDir: (dir) => manifest.addDir(dir),
-    transform: (content) => content.replace('{{MCP_TOOLS}}', toolsLine(mapping)),
+    transform: (content) => fill(content, { MCP_TOOLS: toolsLine(mapping) }),
     knownHash,
   });
 
-  const agents = path.join(root, 'AGENTS.md');
-  const agentsBody = template('AGENTS.md')
-    .replace('{{PROJECT_NAME}}', projectName(root, path.join(root, 'package.json')))
-    .replace(`${MARKER}\n{{DOC_LANGUAGE}}`, languageBlock(language ?? DEFAULT_LANGUAGE))
-    .replace(`${ROLES_MARKER}\n{{MCP_ROLES}}`, rolesBlock(mapping, roles));
-  if (writeIfMissing(agents, agentsBody, { ...opts, label: 'AGENTS.md' })) {
-    manifest.addFile(agents, agentsBody);
+  const agents = path.join(root, AGENTS_FILE);
+  const agentsBody = readTemplate(AGENTS_FILE)
+    .replace('{{PROJECT_NAME}}', () => projectName(root, path.join(root, 'package.json')))
+    .replace(`${LANGUAGE_MARKER}\n{{DOC_LANGUAGE}}`, () => languageBlock(language ?? DEFAULT_LANGUAGE))
+    .replace(`${ROLES_MARKER}\n{{MCP_ROLES}}`, () => rolesBlock(mapping, roles));
+  if (writeIfMissing(agents, agentsBody, { ...opts, label: AGENTS_FILE })) {
+    onFile(agents, agentsBody, 'created');
   } else {
+    onFile(agents, agentsBody, 'skipped');
     // The file is the user's — patch the marked blocks, never the whole file.
     // The language is a choice already made: only --lang changes it.
     if (language) applyDocLanguage(root, language, opts);
@@ -151,17 +161,85 @@ function scaffold(root, opts, manifest, language, mapping, roles) {
 
   applyToolsLine(root, mapping, opts, manifest);
 
-  const claudeMd = path.join(root, 'CLAUDE.md');
-  if (ensureSymlink(claudeMd, 'AGENTS.md', { ...opts, type: 'file', label: 'CLAUDE.md' })) {
-    manifest.addLink(claudeMd, 'AGENTS.md');
+  const claudeMd = path.join(root, CLAUDE_FILE);
+  if (ensureSymlink(claudeMd, AGENTS_FILE, { ...opts, type: 'file', label: CLAUDE_FILE })) {
+    manifest.addLink(claudeMd, AGENTS_FILE);
   }
 
-  const claudeDir = path.join(root, '.claude');
-  if (ensureSymlink(claudeDir, AGENTIC_DIR, { ...opts, type: 'dir', label: '.claude' })) {
+  const claudeDir = path.join(root, CLAUDE_DIR);
+  if (ensureSymlink(claudeDir, AGENTIC_DIR, { ...opts, type: 'dir', label: CLAUDE_DIR })) {
     manifest.addLink(claudeDir, AGENTIC_DIR);
   }
 
   checkGitignore(root, reporter);
+  return true;
+}
+
+/**
+ * Removes what an older version of the package wrote and this one no longer
+ * ships — a renamed skill would otherwise stay in the project for good, and
+ * Claude Code would keep loading it beside the one that replaced it.
+ *
+ * Same rule as writing: a file still identical to its hash in the manifest is
+ * ours to remove, anything the user touched is theirs to keep.
+ */
+function prune(root, manifest, recorded, seen, { dryRun, reporter }) {
+  // An empty `seen` means the scaffold produced nothing, not that the package
+  // ships nothing. Deleting the whole manifest on the strength of that would be
+  // the worst thing this tool could do.
+  if (!seen.size) return;
+
+  const dirs = new Set();
+
+  for (const entry of recorded) {
+    if (entry.type !== 'file' || seen.has(entry.path)) continue;
+
+    const target = path.join(root, entry.path);
+    if (!inside(root, target)) continue;
+
+    const stat = statOrNull(target);
+    if (!stat) {
+      manifest.remove(entry.path); // already gone — nothing to say
+      continue;
+    }
+
+    // Something else stands there now. Reading it would throw, and deleting it
+    // could take a directory of the user's files with it.
+    if (!stat.isFile()) {
+      reporter.warn(
+        `${entry.path} is no longer a regular file — left untouched`,
+        'the package stopped shipping it; remove it yourself if you want it gone',
+      );
+      continue;
+    }
+
+    // No hash, or one that no longer matches: we cannot prove the file is ours
+    // and unedited, so it stays. Only the edited case is worth a word.
+    if (hash(fs.readFileSync(target, 'utf8')) !== entry.hash) {
+      if (entry.hash) {
+        reporter.warn(
+          `${entry.path} was edited, and the package no longer ships it — left as it is`,
+          'delete it yourself once you no longer need it',
+        );
+      }
+      continue;
+    }
+
+    if (!dryRun) removePath(target);
+    manifest.remove(entry.path);
+    dirs.add(path.dirname(target));
+    reporter.removed(entry.path);
+  }
+
+  // A retired skill leaves its directory behind. Deepest first, and only ever
+  // one that holds nothing — a directory with the user's files in it stays.
+  if (dryRun) return;
+  for (const dir of [...dirs].sort((a, b) => b.length - a.length)) {
+    if (!inside(root, dir) || !removeIfEmpty(dir)) continue;
+    const rel = path.relative(root, dir);
+    manifest.remove(rel); // or it would be recorded for a directory that is gone
+    reporter.removed(`${rel}/`);
+  }
 }
 
 /** Prints what was detected and which role each server can fill. */
@@ -180,7 +258,7 @@ function reportDetected(servers, mapping, reporter, allRoles) {
  * the same during a dry run.
  */
 function claudeConflict(root) {
-  const link = path.join(root, '.claude');
+  const link = path.join(root, CLAUDE_DIR);
   const stat = statOrNull(link);
   if (!stat) return null;
 
@@ -217,23 +295,35 @@ export async function init({ cwd = process.cwd(), dryRun = false, force = false,
 
   reporter.info(`project root: ${root}`);
 
+  // Read before scaffold touches anything: this is the state the last run left.
+  const previous = readManifest(root);
   const manifest = createManifest(root);
   const sources = readSources(root, { reporter });
   const language = parseLang(lang, reporter);
 
+  const running = ownPackage().version;
+  if (previous?.packageVersion && previous.packageVersion !== running) {
+    reporter.info(`upgrading ${previous.packageVersion} ${dim('->')} ${cyan(running)}`);
+  }
+
   // Nothing is asked for: what is connected, we find; what is not, we explain.
   const { mapping, roles } = detect(root, sources, reporter);
 
-  scaffold(root, opts, manifest, language, mapping, roles);
-  manifest.write({ dryRun });
+  const seen = new Set();
+  if (scaffold(root, opts, manifest, language, mapping, roles, seen)) {
+    prune(root, manifest, previous?.entries ?? [], seen, opts);
+    manifest.write({ dryRun, version: running });
+  }
 
   printConnectHint(sources, mapping, reporter);
 
-  const { created, updated, skipped, warnings } = reporter.counts;
+  const { created, updated, removed, skipped, warnings } = reporter.counts;
+  const did = (count, verb) => `${count} ${dryRun ? `would be ${verb}` : verb}`;
   console.log('');
   reporter.info(
-    `${dryRun ? `dry run — ${created} would be created` : `${created} created`}, ` +
-      (updated ? `${updated} updated, ` : '') +
+    `${dryRun ? 'dry run — ' : ''}${did(created, 'created')}, ` +
+      (updated ? `${did(updated, 'updated')}, ` : '') +
+      (removed ? `${did(removed, 'removed')}, ` : '') +
       `${skipped} unchanged, ${warnings} warning${warnings === 1 ? '' : 's'}`,
   );
   if (created > 0 && !dryRun) {
@@ -241,6 +331,11 @@ export async function init({ cwd = process.cwd(), dryRun = false, force = false,
     console.log(`    ${dim('1.')} describe the project in AGENTS.md — Overview, Commands, Conventions`);
     console.log(`    ${dim('2.')} ${cyan('npx agentic-flow config')} — re-scan once your MCP servers are connected`);
     console.log(`    ${dim('3.')} ${cyan('/spec <ticket-url>')} — specify your first task`);
+  } else if ((updated > 0 || removed > 0) && !dryRun) {
+    // An upgrade creates nothing. The new files still do nothing until the
+    // session that reads them starts again.
+    reporter.info('next:');
+    console.log(`    ${dim('1.')} restart your Claude session — skills and agents are read when it starts`);
   }
 
   // Last, and whatever the counts say: on a second run nothing is created, but

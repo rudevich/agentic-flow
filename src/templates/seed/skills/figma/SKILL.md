@@ -18,8 +18,8 @@ A design URL has the host `figma.com`. The path usually contains `/file/`,
 
 ## Which tool to use
 
-Your role is `design`. The `MCP roles` table in `AGENTS.md` says which MCP server
-fills that role.
+Your role is `design`. Open `AGENTS.md`, find the `MCP roles` table, and read the
+server name on the `design` row. Use that server's tools.
 
 Figma does not use an API token like the other sources. It connects in one of two
 ways:
@@ -27,9 +27,9 @@ ways:
 - the Dev Mode MCP server, started from the Figma desktop application;
 - an OAuth connector, authorised with `/mcp` in an interactive session.
 
-If neither exists, the `design` role is empty. See "If you cannot read the file".
+If the `design` row is empty, go to "If you cannot read the file".
 
-## What to write down
+## What to copy
 
 Write down only what you can see in the file:
 
@@ -39,15 +39,15 @@ Write down only what you can see in the file:
 - the `node-id` from the link, if it had one.
 
 Do not add anything you did not see. A state that is not drawn does not exist.
-Write it under "Not in the file" instead.
+List it under `Not in the file` instead.
 
 Example: the file shows a cart with three items and a cart with one item. It
 shows no empty cart and no error. So "empty cart" and "error" go under
-"Not in the file", and you write no requirement about them.
+`Not in the file`, and you write no requirement about them.
 
 ## What to write
 
-Write `sources/design.md`.
+Write one file: `sources/design.md`. Copy the shape below.
 
 ```markdown
 # Design — <file name>
@@ -70,23 +70,39 @@ _fetched 2026-09-13 14:20_
 - offline state
 ```
 
+Use the current date and time. Do not copy the example.
+
+Replace every `<…>` with a real value. No angle brackets may remain in what you
+write.
+
 If you were given more than one design link, put one section per file here. Each
 section gets its own `**Source:**` line.
 
 ## What to report back
 
-Nothing. Links inside a design file are not followed. The chain of sources ends
-with you.
+Answer `spec` in exactly this shape, and nothing else:
+
+```
+written: agentic/tasks/PROJ-123/sources/design.md
+links: none
+```
+
+`links` is always `none`. Links inside a design file are not followed. The chain
+of sources ends with you.
 
 ## If you cannot read the file
 
-Two cases:
+Two cases, and both end the same way:
 
 - there is no MCP server for the `design` role;
 - the file URL does not load.
 
-Report `unavailable — <reason>` back to `spec`, which writes that into the
-`Sources` table. The run continues without a design.
+Write no file. Answer in this shape:
+
+```
+written: none
+reason: no MCP server for the design role
+```
 
 Never describe screens you could not open. Never rebuild the design from the
 analytics document: the snapshot exists exactly to show when the two disagree.

@@ -1,6 +1,7 @@
 {
   "version": 1,
-  "writtenAt": "2026-09-13T16:46:36.509Z",
+  "packageVersion": "0.2.0",
+  "writtenAt": "2026-09-13T20:08:17.390Z",
   "entries": [
     {
       "path": "agentic",
@@ -18,7 +19,7 @@
     {
       "path": "agentic/skills/README.md",
       "type": "file",
-      "hash": "95495561003970c8"
+      "hash": "dc06de7a634358de"
     },
     {
       "path": "agentic/agents",
@@ -32,7 +33,7 @@
     {
       "path": "agentic/agents/README.md",
       "type": "file",
-      "hash": "2bbb77a77ac094c9"
+      "hash": "b946d77c84234ed7"
     },
     {
       "path": "agentic/hooks",
@@ -46,7 +47,7 @@
     {
       "path": "agentic/hooks/README.md",
       "type": "file",
-      "hash": "45f9f045de92d493"
+      "hash": "c20ac77859a9f854"
     },
     {
       "path": "agentic/tasks",
@@ -60,17 +61,17 @@
     {
       "path": "agentic/tasks/README.md",
       "type": "file",
-      "hash": "196e43190dd7a2c9"
+      "hash": "0c650a8d232b2aec"
     },
     {
       "path": "agentic/agents/planner.md",
       "type": "file",
-      "hash": "29d103c69cb9317a"
+      "hash": "a4f024d1f655fd61"
     },
     {
       "path": "agentic/agents/specificator.md",
       "type": "file",
-      "hash": "fc1d06e801badbbd"
+      "hash": "02dc84fde3b8a13a"
     },
     {
       "path": "agentic/skills/confluence",
@@ -79,7 +80,7 @@
     {
       "path": "agentic/skills/confluence/SKILL.md",
       "type": "file",
-      "hash": "fe273e63d2eccfc8"
+      "hash": "6f17cb0dfd43a063"
     },
     {
       "path": "agentic/skills/figma",
@@ -88,7 +89,7 @@
     {
       "path": "agentic/skills/figma/SKILL.md",
       "type": "file",
-      "hash": "b9dc1dc9a39e7121"
+      "hash": "26a5ffee1b8e0ea0"
     },
     {
       "path": "agentic/skills/jira",
@@ -97,7 +98,7 @@
     {
       "path": "agentic/skills/jira/SKILL.md",
       "type": "file",
-      "hash": "82bf0730660b095a"
+      "hash": "7b18aefd09381e8c"
     },
     {
       "path": "agentic/skills/plan",
@@ -106,7 +107,7 @@
     {
       "path": "agentic/skills/plan/SKILL.md",
       "type": "file",
-      "hash": "32f0e571daf63695"
+      "hash": "3a23c841abb6f440"
     },
     {
       "path": "agentic/skills/spec",
@@ -115,7 +116,7 @@
     {
       "path": "agentic/skills/spec/SKILL.md",
       "type": "file",
-      "hash": "45ccf0d750a56809"
+      "hash": "d317a72e1d8c6553"
     },
     {
       "path": ".claude",

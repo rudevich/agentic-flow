@@ -1,10 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { AGENTS_FILE, LANGUAGE_MARKER } from './constants.js';
 import { statOrNull } from './fsx.js';
-
-export const MARKER = '<!-- agentic:doc-language -->';
-export const AGENTS_FILE = 'AGENTS.md';
 
 export const LANGUAGES = {
   english: 'Write every document you generate in English, whatever the language of the request.',
@@ -18,7 +16,7 @@ export function languageLine(choice) {
 }
 
 export function languageBlock(choice) {
-  return `${MARKER}\n${languageLine(choice)}`;
+  return `${LANGUAGE_MARKER}\n${languageLine(choice)}`;
 }
 
 /**
@@ -71,10 +69,12 @@ export function applyBlock(root, marker, block, { dryRun, reporter, label }) {
 
   lines.splice(start, end - start, ...block.split('\n'));
   if (!dryRun) fs.writeFileSync(file, lines.join('\n'));
-  reporter.created(`${AGENTS_FILE}: ${name}`);
+  // The file was already there — this rewrites a block inside it. Calling that
+  // "created" makes init count a re-scan as a first run and say so.
+  reporter.updated(`${AGENTS_FILE}: ${name}`);
   return 'updated';
 }
 
 export function applyDocLanguage(root, choice, opts) {
-  return applyBlock(root, MARKER, languageBlock(choice), { ...opts, label: 'document language' });
+  return applyBlock(root, LANGUAGE_MARKER, languageBlock(choice), { ...opts, label: 'document language' });
 }

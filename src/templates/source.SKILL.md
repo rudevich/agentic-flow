@@ -17,8 +17,8 @@ A URL containing any of: {{MATCHES}}
 
 ## Which tool to use
 
-Your role is `{{ROLE}}`. The `MCP roles` table in `AGENTS.md` says which MCP
-server fills that role. Use that server's tools.
+Your role is `{{ROLE}}`. Open `AGENTS.md`, find the `MCP roles` table, and read
+the server name on the `{{ROLE}}` row. Use that server's tools.
 
 If the page requires a login, do not use `WebFetch`. It would return the login
 page, and a login page looks like a page with nothing in it.
@@ -33,40 +33,60 @@ page, and a login page looks like a page with nothing in it.
 
 ## What to write
 
-Write `{{WRITES}}`. Start it with the ticket URL, the page URL and the time you
-read it.
+Write one file: `{{WRITES}}`. Copy the shape below.
 
 ```markdown
-# {{TITLE}} — <title>
+# {{TITLE}} — <page title>
 
 **Ticket:** https://co.atlassian.net/browse/PROJ-123
-**Source:** <url>
+**Source:** <the url you were given>
 _fetched 2026-09-13 14:20_
 
 <the page>
 ```
+
+Use the current date and time. Do not copy the example.
+
+Replace every `<…>` with a real value. No angle brackets may remain in what you
+write.
 
 If you were given more than one link of this kind, put one section per page in
 this same file. Each section gets its own `**Source:**` line.
 
 ## What to report back
 
+Answer `spec` in exactly this shape, and nothing else:
+
+```
+written: agentic/tasks/PROJ-123/{{WRITES}}
+links:
+- <url> -> <the name of the skill that reads it>
+- <url> -> not recognised, not opened
+```
+
 <!-- TODO: answer one question here.
      Which links found on this page should be opened by another source skill?
-     If none, write "Nothing. The chain of sources ends here." and set
-     `links` to `stop` in the table below. -->
+     Write one table row per kind, the way the jira skill does it.
+     If none, write "links is always none" and set `links` to `stop` in the
+     table at the end of this file. -->
+
+If the page carries no links, write `links: none`.
 
 Only report links that are written on the page. Never build a URL yourself.
 
 ## If you cannot read the page
 
-Two cases:
+Two cases, and both end the same way:
 
 - there is no MCP server for the `{{ROLE}}` role;
 - the URL does not load.
 
-Report `unavailable — <reason>` back to `spec`, which writes that into the
-`Sources` table. The run continues without this source.
+Write no file. Answer in this shape:
+
+```
+written: none
+reason: no MCP server for the {{ROLE}} role
+```
 
 Never describe a page you could not open. Never rebuild it from the other
 sources. What this page would have answered belongs under `Missing in sources`.

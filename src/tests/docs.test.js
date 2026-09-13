@@ -3,10 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
+import { LANGUAGE_MARKER } from '../constants.js';
 import {
   DEFAULT_LANGUAGE,
   LANGUAGES,
-  MARKER,
   applyBlock,
   applyDocLanguage,
   languageBlock,
@@ -53,20 +53,32 @@ describe('languageLine', () => {
 });
 
 describe('applyBlock', () => {
-  const page = ['# Title', '', '## Documents', '', MARKER, LANGUAGES.english, '', '## Next', '', 'tail'].join('\n');
+  const page = ['# Title', '', '## Documents', '', LANGUAGE_MARKER, LANGUAGES.english, '', '## Next', '', 'tail'].join('\n');
 
   it('replaces only the block under the marker', async () => {
     const root = agentsWith(page);
     const reporter = fakeReporter();
 
     const { value } = await silenced(() =>
-      applyBlock(root, MARKER, languageBlock('request'), opts(reporter)),
+      applyBlock(root, LANGUAGE_MARKER, languageBlock('request'), opts(reporter)),
     );
 
     assert.equal(value, 'updated');
     const after = fs.readFileSync(path.join(root, 'AGENTS.md'), 'utf8').split('\n');
     assert.equal(after[5], LANGUAGES.request);
     assert.deepEqual(after.slice(6), ['', '## Next', '', 'tail']);
+  });
+
+  // The file already existed; only a block inside it changed. Reporting that as
+  // a creation makes init count a re-scan as a first run.
+  it('reports a rewritten block as an update, not a creation', async () => {
+    const root = agentsWith(page);
+    const reporter = fakeReporter();
+
+    await silenced(() => applyBlock(root, LANGUAGE_MARKER, languageBlock('request'), opts(reporter)));
+
+    assert.equal(reporter.counts.created, 0);
+    assert.equal(reporter.counts.updated, 1);
   });
 
   it('replaces a multi-line block up to the blank line', async () => {
@@ -84,7 +96,7 @@ describe('applyBlock', () => {
     const root = agentsWith(page);
     const reporter = fakeReporter();
 
-    const { value } = await silenced(() => applyBlock(root, MARKER, languageBlock('english'), opts(reporter)));
+    const { value } = await silenced(() => applyBlock(root, LANGUAGE_MARKER, languageBlock('english'), opts(reporter)));
 
     assert.equal(value, 'unchanged');
     assert.equal(reporter.counts.created, 0);
@@ -96,16 +108,16 @@ describe('applyBlock', () => {
     const before = fs.readFileSync(path.join(root, 'AGENTS.md'), 'utf8');
 
     const { value, output } = await silenced(() =>
-      applyBlock(root, MARKER, languageBlock('english'), opts(fakeReporter())),
+      applyBlock(root, LANGUAGE_MARKER, languageBlock('english'), opts(fakeReporter())),
     );
 
     assert.equal(value, 'no-marker');
     assert.equal(fs.readFileSync(path.join(root, 'AGENTS.md'), 'utf8'), before);
-    assert.ok(output.includes(MARKER));
+    assert.ok(output.includes(LANGUAGE_MARKER));
   });
 
   it('reports no-file when AGENTS.md is absent', async () => {
-    const { value } = await silenced(() => applyBlock(tmpDir(), MARKER, 'x', opts(fakeReporter())));
+    const { value } = await silenced(() => applyBlock(tmpDir(), LANGUAGE_MARKER, 'x', opts(fakeReporter())));
     assert.equal(value, 'no-file');
   });
 
@@ -113,7 +125,7 @@ describe('applyBlock', () => {
     const root = agentsWith(page);
     const before = fs.readFileSync(path.join(root, 'AGENTS.md'), 'utf8');
 
-    await silenced(() => applyBlock(root, MARKER, languageBlock('request'), opts(fakeReporter(), { dryRun: true })));
+    await silenced(() => applyBlock(root, LANGUAGE_MARKER, languageBlock('request'), opts(fakeReporter(), { dryRun: true })));
 
     assert.equal(fs.readFileSync(path.join(root, 'AGENTS.md'), 'utf8'), before);
   });
@@ -121,7 +133,7 @@ describe('applyBlock', () => {
 
 describe('applyDocLanguage', () => {
   it('swaps the language sentence in place', async () => {
-    const root = agentsWith([MARKER, LANGUAGES.english, '', '## Next'].join('\n'));
+    const root = agentsWith([LANGUAGE_MARKER, LANGUAGES.english, '', '## Next'].join('\n'));
 
     await silenced(() => applyDocLanguage(root, 'request', opts(fakeReporter())));
 

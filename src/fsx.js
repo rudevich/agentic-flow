@@ -1,15 +1,9 @@
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { dim, green, yellow } from './color.js';
-
-/** Short content hash — how we later recognise a file as one we wrote. */
-export function hash(content) {
-  return crypto.createHash('sha256').update(content).digest('hex').slice(0, 16);
-}
-
-export const PREFIX = '[agentic]';
+import { dim, green, red, yellow } from './color.js';
+import { PREFIX } from './constants.js';
+import { hash } from './utils.js';
 
 /** The prefix every line carries, kept out of the way of what matters. */
 const tag = () => dim(PREFIX);
@@ -19,7 +13,7 @@ const tag = () => dim(PREFIX);
  * instead of a wall of interleaved messages.
  */
 export function createReporter({ dryRun = false } = {}) {
-  const counts = { created: 0, updated: 0, skipped: 0, warnings: 0 };
+  const counts = { created: 0, updated: 0, removed: 0, skipped: 0, warnings: 0 };
   const warnings = [];
 
   return {
@@ -34,6 +28,10 @@ export function createReporter({ dryRun = false } = {}) {
     updated(what) {
       counts.updated += 1;
       console.log(`${tag()} ${green(dryRun ? 'would update' : 'updated')}  ${what}`);
+    },
+    removed(what) {
+      counts.removed += 1;
+      console.log(`${tag()} ${red(dryRun ? 'would remove' : 'removed')}  ${what}`);
     },
     skipped(what, why) {
       counts.skipped += 1;
@@ -51,8 +49,24 @@ export function createReporter({ dryRun = false } = {}) {
   };
 }
 
+/**
+ * What is at `target`, or null. `throwIfNoEntry` only covers ENOENT, and a path
+ * that runs *through* a file (`agentic/x` when `agentic` is a file) throws
+ * ENOTDIR instead — every caller here means the same thing by both: nothing
+ * usable is there.
+ */
 export function statOrNull(target) {
-  return fs.lstatSync(target, { throwIfNoEntry: false }) ?? null;
+  try {
+    return fs.lstatSync(target, { throwIfNoEntry: false }) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Refuses anything that would escape the project root. Guards every delete. */
+export function inside(root, target) {
+  const rel = path.relative(root, target);
+  return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel);
 }
 
 /** Returns 'created' | 'exists' | 'blocked' — 'blocked' means a non-directory
@@ -161,6 +175,16 @@ export function writeManaged(file, content, { dryRun, reporter, label, knownHash
     return 'created';
   }
 
+  // A directory or a symlink where a file belongs. Reading it throws, and the
+  // whole run would die on one odd path, so say what is wrong and carry on.
+  if (!stat.isFile()) {
+    reporter.warn(
+      `${name} exists but is not a regular file — left untouched`,
+      'remove or rename it, then run agentic-flow init again',
+    );
+    return 'skipped';
+  }
+
   const current = fs.readFileSync(file, 'utf8');
   if (current === content) {
     reporter.skipped(name, 'already up to date');
@@ -197,6 +221,10 @@ export function writeManaged(file, content, { dryRun, reporter, label, knownHash
  * Copies `srcDir` into `destDir` file by file. Missing files are created;
  * `knownHash(destPath)` decides what happens to the ones already there — see
  * `writeManaged`. `label` is the path shown in the report.
+ *
+ * `onFile` fires for every file walked, not only the ones written: a file
+ * skipped as already up to date is still a file this package ships, and the
+ * caller has to be able to tell that from one it no longer ships at all.
  */
 export function copyTree(srcDir, destDir, { dryRun, reporter, label, onFile, onDir, transform, knownHash }) {
   for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
@@ -214,7 +242,7 @@ export function copyTree(srcDir, destDir, { dryRun, reporter, label, onFile, onD
     const raw = fs.readFileSync(from, 'utf8');
     const content = transform ? transform(raw) : raw;
     const what = writeManaged(to, content, { dryRun, reporter, label: name, knownHash: knownHash?.(to) });
-    if (what === 'created' || what === 'updated') onFile?.(to, content);
+    onFile?.(to, content, what);
   }
 }
 

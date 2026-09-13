@@ -1,9 +1,15 @@
 #!/usr/bin/env node
-import { PREFIX } from '../src/fsx.js';
+import { MIN_NODE_MAJOR, PREFIX } from '../src/constants.js';
 import { config, init } from '../src/init.js';
 import { ownPackage } from '../src/project.js';
 import { reset } from '../src/reset.js';
 import { addSource } from '../src/source.js';
+import { nodeAtLeast } from '../src/utils.js';
+
+if (!nodeAtLeast(MIN_NODE_MAJOR)) {
+  console.error(`${PREFIX} needs Node ${MIN_NODE_MAJOR} or newer — this is ${process.versions.node}`);
+  process.exit(1);
+}
 
 const HELP = `
   agentic-flow — scaffold agent material for a project

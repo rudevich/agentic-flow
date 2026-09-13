@@ -1,6 +1,6 @@
 {
   "name": "@rudevich/agentic-flow",
-  "version": "0.1.6",
+  "version": "0.2.0",
   "description": "Scaffolds an agentic/ directory (skills, agents, hooks, tasks) with .claude and CLAUDE.md symlinks, and seeds a ticket-to-subtasks pipeline",
   "keywords": [
     "claude-code",
@@ -25,7 +25,7 @@
   "author": "Alexander Rudevich <rudevich@gmail.com>",
   "type": "module",
   "engines": {
-    "node": ">=18"
+    "node": ">=24"
   },
   "bin": {
     "agentic-flow": "bin/agentic-flow.js"

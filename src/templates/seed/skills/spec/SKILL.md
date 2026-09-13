@@ -29,6 +29,34 @@ agentic/tasks/<KEY>/
 
 Write nothing outside `agentic/tasks/<KEY>/`.
 
+## How to call another skill
+
+You never open a page yourself. You call the skill that owns it.
+
+Calling a skill means using the Skill tool with that skill's name. Calling the
+`jira` skill means `skill: jira`. Reading the text of `jira/SKILL.md` is not
+calling it.
+
+Every source skill answers you in the same shape:
+
+```
+written: agentic/tasks/PROJ-123/sources/ticket.md
+links:
+- https://co.atlassian.net/wiki/spaces/PROD/pages/12345 -> confluence
+- https://dashboard.internal/metrics -> not recognised, not opened
+```
+
+or, when it could not read its page:
+
+```
+written: none
+reason: no MCP server for the docs role
+```
+
+Use the `links` list for step 5. Use the `written` line for step 6. If a skill
+answers in some other shape, treat what you can read as the answer and never
+invent the rest.
+
 ## Step 1. Read the command
 
 The command looks like this:
@@ -91,8 +119,8 @@ table is whatever you found in step 3, not this list.
 
 Find the source whose `role` is `tracker`. That is your entry point.
 
-Load that skill and follow it. It writes its file and gives you back a list of
-links it found in the ticket.
+Call that skill, as described in "How to call another skill". It writes its file
+and answers you with the links it found in the ticket.
 
 If you have no tool for the `tracker` role: stop. Say which role is missing.
 Write no `requirements.md`. You cannot specify a ticket you could not read, and
@@ -108,8 +136,8 @@ Take the links the ticket gave you. For each one, in order:
    - Yes → skip it. Remember the flag for the `Sources` table.
 3. Have you already read this exact URL?
    - Yes → skip it.
-4. Otherwise → load that source skill and follow it. It writes its file and may
-   give you back more links.
+4. Otherwise → call that source skill. It writes its file and may answer with
+   more links.
 
 Now take the links those skills gave you and repeat the same four checks once.
 
@@ -131,9 +159,9 @@ table. Every source is in exactly one of these states. Write the matching row:
 
 | State | Row to write |
 | --- | --- |
-| read | `\| Design \| <url> \| 2026-09-13 14:20 \|` |
+| read | `\| Design \| <url> \| <date and time> \|` |
 | excluded by a flag | `\| Design \| skipped (--no-figma) \| — \|` |
-| no MCP server for its role | `\| Design \| unavailable — no design server \| — \|` |
+| the skill answered `written: none` | `\| Design \| unavailable — <reason> \| — \|` |
 | no link to it anywhere | `\| Design \| no link in the ticket or the analytics doc \| — \|` |
 
 Only the ticket is fatal. If any other source is missing, keep going and write
@@ -155,7 +183,7 @@ The user has already decided. Do this without asking:
 1. Copy the ticket description, word for word, into `sources/analytics.md`.
 2. Cite those requirements as `ticket`.
 3. Write this row in `Sources`:
-   `| Analytics | skipped by --no-confluence — ticket description used | 2026-09-13 14:20 |`
+   `| Analytics | skipped by --no-confluence — ticket description used | <date and time> |`
 
 **Case B: there was no flag, and the ticket has no link to an analytics page.**
 
@@ -171,10 +199,17 @@ else:
 The main session asks the user and runs you again with the answer.
 
 - Answer yes → copy the description word for word into `sources/analytics.md`.
-  Start that file with `# Analytics — the ticket description` and the line
-  `_the user decided to treat the ticket as the analytics document · 2026-09-13 14:20_`.
-  In `Sources` write
-  `| Analytics | the ticket description — by the user's decision | 2026-09-13 14:20 |`
+  Start that file like this:
+
+  ```markdown
+  # Analytics — the ticket description
+
+  **Ticket:** https://co.atlassian.net/browse/PROJ-123
+  _the user decided to treat the ticket as the analytics document · 2026-09-13 14:20_
+  ```
+
+  Then write this row in `Sources`:
+  `| Analytics | the ticket description — by the user's decision | <date and time> |`
 - Answer no → write `requirements.md` with no analytics source. Make
   "an analytics document is needed" your first `Open question`.
 
@@ -182,81 +217,10 @@ A link that exists but fails to load is **not** this case. That is step 6.
 
 ## Step 8. Write requirements.md
 
-Use the template at the end of this file.
-
-Start every file you write under `agentic/tasks/<KEY>/` with the full ticket URL:
+Write one file: `agentic/tasks/<KEY>/requirements.md`. Copy the shape below.
 
 ```markdown
-**Ticket:** https://company.atlassian.net/browse/PROJ-123
-```
-
-That means `requirements.md` and every file in `sources/`. People open these
-files one at a time, months later. Each file has to say where it came from on its
-own.
-
-Write the files in the language set by the document language rule in `AGENTS.md`.
-
-### Rules for the content
-
-**Every requirement names its source.** Write the source in backticks after the
-text: `` — `analytics §2.1` ``. If you cannot name a source, it is not a
-requirement. Move it to `Open questions`.
-
-**Write down only states you saw.** Error, empty, loading, offline, no
-permission: if the design does not show a state, do not write a requirement for
-it. Put it under `Missing in sources` instead. Example: the design shows a filled
-cart but no empty cart, so "empty cart" goes under `Missing in sources`.
-
-**Do not settle disagreements.** If the analytics page says 30 days and the
-design shows 14 days, do not choose. Write both numbers into one `Open question`
-and name both sources.
-
-**Do not design the solution.** No file names, no function names, no database
-tables, no library choices. Write what must be true, not how to build it.
-
-**Check that `Open questions` is not empty.** A real ticket almost always leaves
-something unanswered. If your list is empty, you probably answered something
-yourself. Go back through the requirements and find the guesses.
-
-### Work assignments
-
-1. List the files in `agentic/agents/`. Those are the agents that exist.
-2. For each piece of work, write one row: who does it and what exactly.
-3. If no existing agent fits, write the name you would give a new one and put `?`
-   in the row.
-
-Do not force the work into a fixed set of layers such as backend and frontend.
-Use what the ticket actually needs.
-
-## Step 9. Stop
-
-Do not plan the implementation. Do not write `subtasks.md`. Do not touch code.
-
-Show the user:
-
-1. the path of the file you wrote;
-2. the `Open questions` section, word for word;
-3. the `Missing in sources` section, word for word.
-
-A human reads the specification and accepts it. Breaking it into subtasks is the
-`plan` skill, and it runs later.
-
-## Before you finish
-
-Check each line. All of them must be true.
-
-- [ ] Everything you wrote is inside `agentic/tasks/<KEY>/`.
-- [ ] `requirements.md` and every file in `sources/` start with the ticket URL.
-- [ ] Every requirement has a source in backticks after it.
-- [ ] `Sources` has one row per source in your routing table.
-- [ ] Every URL you opened came from a page you had already read.
-- [ ] `requirements.md` contains no file names, function names or library names.
-- [ ] You wrote no code and changed no existing file outside the task folder.
-
-## Template
-
-```markdown
-# <KEY> — <title>
+# <KEY> — <ticket title>
 
 **Ticket:** <url>
 _specified 2026-09-13 14:20_
@@ -299,3 +263,78 @@ describe it, not the way the system works.
 States and flows that neither the analytics document nor the design describes.
 Add here everything a skipped or unavailable source would have answered.
 ```
+
+Use the current date and time. Do not copy the example.
+
+Replace every `<…>` with a real value. No angle brackets may remain in what you
+write.
+
+`requirements.md` and every file in `sources/` start with the full ticket URL:
+
+```markdown
+**Ticket:** https://co.atlassian.net/browse/PROJ-123
+```
+
+People open these files one at a time, months later. Each file has to say where
+it came from on its own.
+
+Write the file in the language set by the document language rule in `AGENTS.md`.
+
+### Rules for the content
+
+- **N1 — every requirement names its source.** Write the source in backticks
+  after the text: `` — `analytics §2.1` ``. If you cannot name a source, it is
+  not a requirement. Move it to `Open questions`.
+- **N2 — write down only states you saw.** Error, empty, loading, offline, no
+  permission: if the design does not show a state, do not write a requirement for
+  it. Put it under `Missing in sources` instead. Example: the design shows a
+  filled cart but no empty cart, so "empty cart" goes under `Missing in sources`.
+- **N3 — do not settle disagreements.** If the analytics page says 30 days and
+  the design shows 14 days, do not choose. Write both numbers into one
+  `Open question` and name both sources.
+- **N4 — do not design the solution.** No file names, no function names, no
+  database tables, no library choices. Write what must be true, not how to build
+  it.
+- **N5 — `Open questions` is not empty.** A real ticket almost always leaves
+  something unanswered. If your list is empty, you probably answered something
+  yourself. Go back through the requirements and find the guesses.
+
+### Work assignments
+
+1. List the files in `agentic/agents/`. Those are the agents that exist.
+2. For each piece of work, write one row: who does it and what exactly.
+3. If no existing agent fits, write the name you would give a new one and put `?`
+   in the row.
+
+Do not force the work into a fixed set of layers such as backend and frontend.
+Use what the ticket actually needs.
+
+## Step 9. Stop
+
+Do not plan the implementation. Do not write `subtasks.md`. Do not touch code.
+
+Show the user:
+
+1. the path of the file you wrote;
+2. the `Open questions` section, word for word;
+3. the `Missing in sources` section, word for word.
+
+A human reads the specification and accepts it. Breaking it into subtasks is the
+`plan` skill, and it runs later.
+
+## Before you finish
+
+Check each line. All of them must be true.
+
+- [ ] Everything you wrote is inside `agentic/tasks/<KEY>/` (step 8).
+- [ ] `requirements.md` and every file in `sources/` start with the ticket URL
+      (step 8).
+- [ ] No angle brackets are left anywhere in what you wrote (step 8).
+- [ ] Every date you wrote is the real date, not `2026-09-13 14:20` (step 8).
+- [ ] Every requirement has a source in backticks after it (N1).
+- [ ] `Sources` has one row per source in your routing table (step 6).
+- [ ] Every URL you opened came from a page you had already read (step 5).
+- [ ] `requirements.md` contains no file names, function names or library names
+      (N4).
+- [ ] `Open questions` is not empty (N5).
+- [ ] You wrote no code and changed no existing file outside the task folder.

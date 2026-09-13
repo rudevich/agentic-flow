@@ -3,18 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { MANIFEST_PATH, createManifest, hash, readManifest } from '../manifest.js';
+import { MANIFEST_PATH } from '../constants.js';
+import { createManifest, readManifest } from '../manifest.js';
+import { hash } from '../utils.js';
+import { ownPackage } from '../project.js';
 import { tmpDir } from './helpers.js';
-
-describe('hash', () => {
-  it('is stable for the same content', () => {
-    assert.equal(hash('body'), hash('body'));
-  });
-
-  it('changes when the content changes', () => {
-    assert.notEqual(hash('body'), hash('body '));
-  });
-});
 
 describe('createManifest', () => {
   it('records files with their content hash and reads back', () => {
@@ -69,6 +62,40 @@ describe('createManifest', () => {
     assert.equal(entries[0].hash, hash('second'));
   });
 
+  it('forgets an entry it was told to remove', () => {
+    const root = tmpDir();
+    const first = createManifest(root);
+    first.addFile(path.join(root, 'a.md'), 'a');
+    first.addFile(path.join(root, 'b.md'), 'b');
+    first.write({ dryRun: false });
+
+    const second = createManifest(root);
+    second.remove('a.md');
+    second.write({ dryRun: false });
+
+    assert.deepEqual(readManifest(root).entries.map((e) => e.path), ['b.md']);
+  });
+
+  it('records the package version it was given', () => {
+    const root = tmpDir();
+    const manifest = createManifest(root);
+    manifest.addFile(path.join(root, 'a.md'), 'a');
+    manifest.write({ dryRun: false, version: ownPackage().version });
+
+    assert.equal(readManifest(root).packageVersion, ownPackage().version);
+  });
+
+  // Only init scaffolds, so only init says which version did. Every other
+  // command has to leave that answer as it found it.
+  it('carries the recorded version forward when it is given none', () => {
+    const root = tmpDir();
+    createManifest(root).write({ dryRun: false, version: '0.0.1' });
+
+    createManifest(root).write({ dryRun: false });
+
+    assert.equal(readManifest(root).packageVersion, '0.0.1');
+  });
+
   it('writes nothing on a dry run', () => {
     const root = tmpDir();
     const manifest = createManifest(root);
@@ -90,5 +117,14 @@ describe('readManifest', () => {
     fs.writeFileSync(path.join(root, MANIFEST_PATH), '{ broken');
 
     assert.equal(readManifest(root), null);
+  });
+
+  // Written before we recorded it. Reads as "unknown", never as undefined.
+  it('reports no version for a manifest that predates the field', () => {
+    const root = tmpDir();
+    fs.mkdirSync(path.join(root, 'agentic'), { recursive: true });
+    fs.writeFileSync(path.join(root, MANIFEST_PATH), JSON.stringify({ version: 1, entries: [] }));
+
+    assert.equal(readManifest(root).packageVersion, null);
   });
 });

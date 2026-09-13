@@ -6,7 +6,6 @@ import { describe, it } from 'node:test';
 import {
   copyTree,
   ensureDir,
-  hash,
   ensureSymlink,
   removeIfEmpty,
   removePath,
@@ -14,6 +13,7 @@ import {
   writeIfMissing,
   writeManaged,
 } from '../fsx.js';
+import { hash } from '../utils.js';
 import { fakeReporter, opts, tmpDir } from './helpers.js';
 
 describe('ensureDir', () => {
@@ -225,6 +225,17 @@ describe('writeManaged', () => {
 
     assert.equal(writeManaged(file(root), 'v2', opts(reporter)), 'created');
     assert.equal(read(root), 'v2');
+  });
+
+  // Reading a directory throws, and one odd path must not end the whole run.
+  it('warns instead of throwing when a directory stands where the file belongs', () => {
+    const root = tmpDir();
+    fs.mkdirSync(file(root));
+    const reporter = fakeReporter();
+
+    assert.equal(writeManaged(file(root), 'v2', opts(reporter, { knownHash: hash('v1') })), 'skipped');
+    assert.ok(reporter.has('warnings', 'not a regular file'));
+    assert.ok(fs.statSync(file(root)).isDirectory());
   });
 
   it('says nothing useful when the file already matches', () => {

@@ -1,29 +1,23 @@
-import fs from 'node:fs';
 import path from 'node:path';
 
 import { cyan } from './color.js';
 import { printConnectHint } from './connect.js';
+import { ROLES_MARKER, SKILLS_DIR } from './constants.js';
 import { applyBlock } from './docs.js';
 import { createReporter, ensureDir, statOrNull, writeIfMissing } from './fsx.js';
 import { applyToolsLine } from './init.js';
 import { createManifest } from './manifest.js';
-import { ROLES_MARKER, classify, detectServers, mapRoles, rolesBlock } from './mcp.js';
+import { classify, detectServers, mapRoles, rolesBlock } from './mcp.js';
 import { createPrompt, interactive } from './prompt.js';
-import { findProjectRoot, packageRoot } from './project.js';
-import { SKILLS_DIR, readSources, rolesOf } from './sources.js';
+import { findProjectRoot } from './project.js';
+import { readSources, rolesOf } from './sources.js';
+import { fill, readTemplate } from './utils.js';
 
 const NAME_RE = /^[a-z][a-z0-9-]*$/;
-const TEMPLATE = path.join(packageRoot, 'src', 'templates', 'source.SKILL.md');
 
 const title = (name) => name.charAt(0).toUpperCase() + name.slice(1);
 
-function render(fields) {
-  const raw = fs.readFileSync(TEMPLATE, 'utf8');
-  return Object.entries(fields).reduce(
-    (body, [key, value]) => body.replaceAll(`{{${key}}}`, value),
-    raw,
-  );
-}
+const render = (fields) => fill(readTemplate('source.SKILL.md'), fields);
 
 /** Fills in what the flags did not say, asking only when someone can answer. */
 async function complete(name, given, reporter) {
@@ -50,7 +44,7 @@ async function complete(name, given, reporter) {
   const prompt = createPrompt();
   try {
     console.log('');
-    reporter.info(`a new source: agentic/${SKILLS_DIR}/${name}/`);
+    reporter.info(`a new source: ${SKILLS_DIR}/${name}/`);
 
     fields.role ??= (await prompt.ask('  role it fills [docs]:')).trim() || 'docs';
     while (!fields.matches) {

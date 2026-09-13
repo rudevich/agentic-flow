@@ -1,27 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { BUILTIN_ROLES, SKILLS_DIR, SOURCE_HEADING } from './constants.js';
 import { statOrNull } from './fsx.js';
-import { packageRoot } from './project.js';
+import { TEMPLATES_DIR } from './utils.js';
 
-export const SOURCE_HEADING = '## Source';
-export const SKILLS_DIR = path.join('agentic', 'skills');
-const SEED_SKILLS = path.join(packageRoot, 'src', 'templates', 'seed', 'skills');
+const SEED_SKILLS = path.join(TEMPLATES_DIR, 'seed', 'skills');
 
 const REQUIRED = ['role', 'matches', 'writes'];
-
-/** The roles the package itself ships. Extras declared by a source come after. */
-export const BUILTIN_ROLES = ['tracker', 'docs', 'design'];
-
-/**
- * What the seed skills declare, kept here so `classify` has an answer before any
- * project exists. Mirrors the `## Source` blocks in src/templates/seed/skills/.
- */
-export const BUILTIN_SOURCES = [
-  { name: 'jira', role: 'tracker', server: ['jira', 'atlassian'], auth: 'token', links: 'follow' },
-  { name: 'confluence', role: 'docs', server: ['confluence', 'atlassian'], auth: 'token', links: 'stop' },
-  { name: 'figma', role: 'design', server: ['figma'], auth: 'none', links: 'stop' },
-];
 
 const clean = (value) => value.trim().replace(/^`|`$/g, '').trim();
 const list = (value) => (value ? value.split(',').map(clean).filter(Boolean) : []);
@@ -76,7 +62,17 @@ function scan(dir, reporter) {
     if (!entry.isDirectory()) continue;
 
     const file = path.join(dir, entry.name, 'SKILL.md');
-    if (!statOrNull(file)) continue;
+    const stat = statOrNull(file);
+    if (!stat) continue;
+
+    // Reading a directory throws, and one broken skill must not end the run.
+    if (!stat.isFile()) {
+      reporter?.warn(
+        `${entry.name}: its SKILL.md is not a regular file — ignored`,
+        'remove or rename it, then run agentic-flow init again',
+      );
+      continue;
+    }
 
     const parsed = parseSource(fs.readFileSync(file, 'utf8'));
     if (!parsed) continue;

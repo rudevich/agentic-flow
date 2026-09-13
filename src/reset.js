@@ -3,20 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { cyan, dim, red } from './color.js';
-import { createReporter, removeIfEmpty, removePath, statOrNull } from './fsx.js';
-import { MANIFEST_PATH, hash, readManifest } from './manifest.js';
+import { AGENTIC_DIR, ENV_FILE, GITIGNORE_FILE, MANIFEST_PATH } from './constants.js';
+import { createReporter, inside, removeIfEmpty, removePath, statOrNull } from './fsx.js';
+import { readManifest } from './manifest.js';
 import { createPrompt, interactive } from './prompt.js';
 import { findProjectRoot } from './project.js';
-
-const AGENTIC_DIR = 'agentic';
-// Written by hand, if at all — the package stopped managing tokens.
-const ENV_FILE = '.env.agentic';
-
-/** Refuses anything that would escape the project root. */
-function inside(root, target) {
-  const rel = path.relative(root, target);
-  return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel);
-}
+import { hash } from './utils.js';
 
 /** Untracked or uncommitted content is unrecoverable once deleted. */
 function dirtyPaths(root, paths) {
@@ -61,8 +53,17 @@ function plan(root, manifest, { force, secrets, all }) {
     if (!stat) continue;
 
     if (entry.type === 'file' && entry.hash && !force) {
-      if (hash(fs.readFileSync(target, 'utf8')) !== entry.hash) {
+      if (!stat.isFile() || hash(fs.readFileSync(target, 'utf8')) !== entry.hash) {
         kept.push({ ...entry, reason: 'modified' });
+        continue;
+      }
+    }
+
+    // A symlink the user repointed is as much their change as an edited file.
+    if (entry.type === 'symlink' && entry.target && !force) {
+      const current = stat.isSymbolicLink() ? fs.readlinkSync(target) : null;
+      if (current !== entry.target) {
+        kept.push({ ...entry, reason: 'repointed' });
         continue;
       }
     }
@@ -77,7 +78,7 @@ function plan(root, manifest, { force, secrets, all }) {
 }
 
 function dropGitignoreLine(root, line, dryRun) {
-  const file = path.join(root, '.gitignore');
+  const file = path.join(root, GITIGNORE_FILE);
   if (!statOrNull(file)) return false;
 
   const raw = fs.readFileSync(file, 'utf8');

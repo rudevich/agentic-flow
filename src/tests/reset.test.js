@@ -5,7 +5,8 @@ import { describe, it } from 'node:test';
 
 import { init } from '../init.js';
 import { reset } from '../reset.js';
-import { MANIFEST_PATH, readManifest } from '../manifest.js';
+import { MANIFEST_PATH } from '../constants.js';
+import { readManifest } from '../manifest.js';
 import { silenced, tmpProject } from './helpers.js';
 
 const scaffold = async () => {
@@ -69,6 +70,30 @@ describe('reset', () => {
 
     assert.equal(value.kept, 1);
     assert.ok(fs.existsSync(path.join(root, 'AGENTS.md')));
+  });
+
+  // A repointed symlink is the user's change, the same as an edited file.
+  it('keeps a symlink the user repointed elsewhere', async () => {
+    const root = await scaffold();
+    const link = path.join(root, '.claude');
+    fs.unlinkSync(link);
+    fs.symlinkSync('somewhere-else', link);
+
+    const { output } = await run(root);
+
+    assert.equal(fs.readlinkSync(link), 'somewhere-else');
+    assert.match(output, /repointed/);
+  });
+
+  it('removes a repointed symlink when forced', async () => {
+    const root = await scaffold();
+    const link = path.join(root, '.claude');
+    fs.unlinkSync(link);
+    fs.symlinkSync('somewhere-else', link);
+
+    await run(root, { force: true });
+
+    assert.equal(fs.existsSync(link), false);
   });
 
   it('removes a changed file when forced', async () => {

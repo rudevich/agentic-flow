@@ -25,8 +25,8 @@ If the URL has no key anywhere, it is not a ticket. Say so and stop.
 
 ## Which tool to use
 
-Your role is `tracker`. The `MCP roles` table in `AGENTS.md` says which MCP
-server fills that role. Use that server's tools.
+Your role is `tracker`. Open `AGENTS.md`, find the `MCP roles` table, and read
+the server name on the `tracker` row. Use that server's tools.
 
 Do not use `WebFetch`. Jira requires a login. `WebFetch` would return the login
 page, and a login page looks like a ticket with nothing in it. You would then
@@ -43,11 +43,10 @@ Skip comments that decide nothing, such as "looks good to me".
 
 ## What to write
 
-Write `sources/ticket.md`. Start it with the full ticket URL and the time you
-read it.
+Write one file: `sources/ticket.md`. Copy the shape below.
 
 ```markdown
-# PROJ-123 — <summary>
+# PROJ-123 — <ticket summary>
 
 **Ticket:** https://co.atlassian.net/browse/PROJ-123
 _fetched 2026-09-13 14:20_
@@ -67,13 +66,33 @@ _fetched 2026-09-13 14:20_
 - <author> — <what was decided>
 ```
 
+Use the current date and time. Do not copy the example.
+
+Replace every `<…>` with a real value. No angle brackets may remain in what you
+write.
+
 ## What to report back
 
-List every link that appears in the description or in the comments. Group them:
+Answer `spec` in exactly this shape, and nothing else:
 
-- a URL containing `/wiki/`, `/spaces/` or `/pages/` → for the `confluence` skill
-- a URL containing `figma.com` → for the `figma` skill
-- anything else → name it, and say you did not open it
+```
+written: agentic/tasks/PROJ-123/sources/ticket.md
+links:
+- https://co.atlassian.net/wiki/spaces/PROD/pages/12345 -> confluence
+- https://www.figma.com/design/abc123/Checkout -> figma
+- https://dashboard.internal/metrics -> not recognised, not opened
+```
+
+How to fill the `links` list:
+
+| The URL contains | Write after the arrow |
+| --- | --- |
+| `/wiki/`, `/spaces/` or `/pages/` | `confluence` |
+| `figma.com` | `figma` |
+| anything else | `not recognised, not opened` |
+
+List every link that appears in the description or in the comments. If there are
+none, write `links: none`.
 
 Only report links that are written in the ticket. Never build a URL yourself and
 never guess a host name.
@@ -85,8 +104,15 @@ Two cases, and both end the same way:
 - there is no MCP server for the `tracker` role;
 - the ticket URL does not load.
 
-Say which of the two happened, and stop. Do not write `sources/ticket.md`. Never
-describe a ticket you could not open, and never guess its contents from the key.
+Write no file. Answer in this shape:
+
+```
+written: none
+reason: no MCP server for the tracker role
+```
+
+Never describe a ticket you could not open, and never guess its contents from
+the key.
 
 ## Source
 

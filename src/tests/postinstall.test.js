@@ -4,8 +4,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { packageRoot } from '../project.js';
-import { tmpProject } from './helpers.js';
+import { MANIFEST_PATH } from '../constants.js';
+import { ownPackage, packageRoot } from '../project.js';
+import { tmpProject, writeJson } from './helpers.js';
+
+const escaped = (version) => version.replace(/\./g, '\\.');
+
+function writeManifest(root, extra) {
+  writeJson(path.join(root, MANIFEST_PATH), { version: 1, entries: [], ...extra });
+}
 
 /** postinstall reads its situation from the environment, so run it as npm would. */
 function runPostinstall(env) {
@@ -41,6 +48,44 @@ describe('postinstall', () => {
   // `npm install` inside this repository is not an install into a host project.
   it('says nothing when run inside the package itself', () => {
     assert.equal(runPostinstall({ INIT_CWD: packageRoot }).trim(), '');
+  });
+
+  // A manifest in the project means it was scaffolded before, so this install
+  // is an upgrade, and "run init to scaffold" would be the wrong thing to say.
+  it('says it updated, and from which version, when the project has a manifest', () => {
+    const root = tmpProject();
+    writeManifest(root, { packageVersion: '0.0.1' });
+
+    const output = runPostinstall({ INIT_CWD: root });
+
+    assert.match(output, new RegExp(`updated 0\\.0\\.1 -> ${escaped(ownPackage().version)}`));
+    assert.match(output, /npx agentic-flow init/);
+  });
+
+  it('still says it updated when the manifest predates the version field', () => {
+    const root = tmpProject();
+    writeManifest(root, {});
+
+    const output = runPostinstall({ INIT_CWD: root });
+
+    assert.match(output, new RegExp(`updated to ${escaped(ownPackage().version)}`));
+    assert.doesNotMatch(output, /undefined|null/);
+  });
+
+  // Reinstalling the same version is not an upgrade, and "0.1.6 -> 0.1.6" reads
+  // like a bug.
+  it('does not claim an upgrade when the version did not move', () => {
+    const root = tmpProject();
+    writeManifest(root, { packageVersion: ownPackage().version });
+
+    const output = runPostinstall({ INIT_CWD: root });
+
+    assert.match(output, new RegExp(`reinstalled ${escaped(ownPackage().version)}`));
+    assert.doesNotMatch(output, /->/);
+  });
+
+  it('says it installed when there is no manifest', () => {
+    assert.match(runPostinstall({ INIT_CWD: tmpProject() }), /installed/);
   });
 
   it('exits 0 even when the host package.json is unreadable', () => {
