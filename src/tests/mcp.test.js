@@ -6,6 +6,14 @@ import { describe, it } from 'node:test';
 import { classify, detectServers, mapRoles, rolesBlock, toolsLine } from '../mcp.js';
 import { tmpDir, tmpProject, writeJson } from './helpers.js';
 
+/** Lays out one desktop-app plugin the way the app does, and returns its `rpm` directory. */
+function desktopPlugin(home, plugin, mcp) {
+  const rpm = path.join(home, 'Library', 'Application Support', 'Claude', 'local-agent-mode-sessions', 'session', 'run', 'rpm');
+  writeJson(path.join(rpm, 'manifest.json'), { plugins: [plugin] });
+  writeJson(path.join(rpm, `${plugin.id}`, '.mcp.json'), mcp);
+  return rpm;
+}
+
 describe('classify', () => {
   it('maps a name to the roles it can serve', () => {
     assert.deepEqual(classify('jira'), ['tracker']);
@@ -87,6 +95,42 @@ describe('detectServers', () => {
     );
 
     assert.deepEqual(detectServers(tmpProject(), { home }), []);
+  });
+
+  // The desktop app installs plugins outside ~/.claude, under its own session tree.
+  it('reads plugins the desktop app installed', () => {
+    const home = tmpDir();
+    const rpm = desktopPlugin(home, { id: 'plugin_abc', name: 'product-management' }, {
+      mcpServers: { atlassian: { url: 'x' }, figma: { url: 'y' } },
+    });
+    assert.ok(fs.existsSync(rpm));
+
+    const found = detectServers(tmpProject(), { home });
+    assert.deepEqual(found, [
+      { id: 'plugin:product-management:atlassian', source: 'plugin' },
+      { id: 'plugin:product-management:figma', source: 'plugin' },
+    ]);
+  });
+
+  it('skips a desktop plugin the user turned off', () => {
+    const home = tmpDir();
+    desktopPlugin(
+      home,
+      { id: 'plugin_abc', name: 'product-management', installationPreference: 'disabled' },
+      { mcpServers: { figma: { url: 'y' } } },
+    );
+
+    assert.deepEqual(detectServers(tmpProject(), { home }), []);
+  });
+
+  it('ignores a declared server with no url to reach', () => {
+    const home = tmpDir();
+    desktopPlugin(home, { id: 'plugin_abc', name: 'pm' }, {
+      mcpServers: { figma: { url: 'y' }, gmail: { url: '' } },
+    });
+
+    const ids = detectServers(tmpProject(), { home }).map(({ id }) => id);
+    assert.deepEqual(ids, ['plugin:pm:figma']);
   });
 
   it('keeps the nearest scope when an id appears twice', () => {

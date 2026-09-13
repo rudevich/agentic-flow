@@ -22,7 +22,8 @@ function readJson(file) {
 function serverNames(data) {
   if (!data || typeof data !== 'object') return [];
   const map = data.mcpServers && typeof data.mcpServers === 'object' ? data.mcpServers : data;
-  return Object.keys(map).filter((key) => map[key] && typeof map[key] === 'object');
+  // A declared server with an empty url is a placeholder, not something to reach.
+  return Object.keys(map).filter((key) => map[key] && typeof map[key] === 'object' && map[key].url !== '');
 }
 
 function pluginServers(home) {
@@ -40,6 +41,63 @@ function pluginServers(home) {
       for (const resolved of expandStar(file)) {
         for (const name of serverNames(readJson(resolved))) {
           found.push({ id: `plugin:${plugin}:${name}`, source: 'plugin' });
+        }
+      }
+    }
+  }
+
+  return found;
+}
+
+/** Directory names inside `dir`, or nothing when it does not exist. */
+function subdirs(dir) {
+  try {
+    return fs
+      .readdirSync(dir, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => path.join(dir, entry.name));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Where the Claude desktop app keeps the plugins it installed. Every platform is
+ * checked on every platform: the miss costs one failed readdir, and a home moved
+ * between systems still resolves.
+ */
+function desktopRoots(home) {
+  const tail = ['Claude', 'local-agent-mode-sessions'];
+  return [
+    path.join(home, 'Library', 'Application Support', ...tail),
+    path.join(home, 'AppData', 'Roaming', ...tail),
+    path.join(home, '.config', ...tail),
+  ];
+}
+
+/**
+ * Servers from plugins installed through the desktop app, which keeps them
+ * outside `~/.claude` — under `<root>/<session>/<run>/rpm`, where `manifest.json`
+ * names each plugin and `plugin_<id>/.mcp.json` lists its servers. Ids come out
+ * in the same `plugin:<plugin>:<server>` shape the CLI uses.
+ */
+function desktopPlugins(home) {
+  const found = [];
+
+  for (const root of desktopRoots(home)) {
+    for (const session of subdirs(root)) {
+      for (const run of subdirs(session)) {
+        const rpm = path.join(run, 'rpm');
+        const manifest = readJson(path.join(rpm, 'manifest.json'));
+
+        for (const plugin of manifest?.plugins ?? []) {
+          if (!plugin?.id || !plugin?.name) continue;
+          if (plugin.installationPreference === 'disabled') continue;
+
+          // The directory is named by the id, which already carries its `plugin_` prefix.
+          for (const name of serverNames(readJson(path.join(rpm, plugin.id, '.mcp.json')))) {
+            found.push({ id: `plugin:${plugin.name}:${name}`, source: 'plugin' });
+          }
         }
       }
     }
@@ -95,6 +153,7 @@ export function detectServers(root, { home = os.homedir() } = {}) {
   }
 
   found.push(...pluginServers(home));
+  found.push(...desktopPlugins(home));
 
   const seen = new Set();
   return found.filter(({ id }) => !seen.has(id) && seen.add(id));

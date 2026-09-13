@@ -67,7 +67,7 @@ Which server the agents reach for. Regenerate with `agentic-flow config`.
 | --- | --- |
 | tracker | `jira` |
 | docs | `confluence` |
-| design | — (not connected) |
+| design | `plugin:product-management:figma` |
 
 ## Layout of agent material
 
