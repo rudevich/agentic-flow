@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "jira": {
+      "type": "http",
+      "url": "https://lalla.ru/mcp",
+      "headers": {
+        "Authorization": "Bearer ${JIRA_TOKEN}"
+      }
+    },
+    "confluence": {
+      "type": "http",
+      "url": "https://lalala.ru/mcp",
+      "headers": {
+        "Authorization": "Bearer ${CONFLUENCE_TOKEN}"
+      }
+    }
+  }
+}

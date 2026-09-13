@@ -1,0 +1,25 @@
+{
+  "name": "@rudevich/agentic-flow",
+  "version": "0.1.4",
+  "description": "Scaffolds an agentic/ directory (skills, agents, hooks, tasks) with .claude and CLAUDE.md symlinks, and seeds a ticket-to-subtasks pipeline",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "agentic-flow": "bin/agentic-flow.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "!src/tests",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "test": "node --test \"src/tests/*.test.js\"",
+    "postinstall": "node src/postinstall.js"
+  }
+}
