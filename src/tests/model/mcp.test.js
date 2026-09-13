@@ -3,8 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { classify, detectServers, mapRoles, rolesBlock, toolsLine } from '../mcp.js';
-import { tmpDir, tmpProject, writeJson } from './helpers.js';
+import { classify, detectServers, mapRoles, rolesBlock, toolsLine } from '../../model/mcp.js';
+import { tmpDir, tmpProject, writeJson } from '../helpers.js';
 
 /** Lays out one desktop-app plugin the way the app does, and returns its `rpm` directory. */
 function desktopPlugin(home, plugin, mcp) {

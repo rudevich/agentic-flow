@@ -3,11 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { MANIFEST_PATH } from '../constants.js';
-import { createManifest, readManifest } from '../manifest.js';
-import { hash } from '../utils.js';
-import { ownPackage } from '../project.js';
-import { tmpDir } from './helpers.js';
+import { MANIFEST_PATH } from '../../constants.js';
+import { createManifest, readManifest } from '../../model/manifest.js';
+import { hash } from '../../utils.js';
+import { ownPackage } from '../../project.js';
+import { tmpDir } from '../helpers.js';
 
 describe('createManifest', () => {
   it('records files with their content hash and reads back', () => {

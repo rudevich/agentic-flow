@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import { MIN_NODE_MAJOR, PREFIX } from '../src/constants.js';
-import { config, init } from '../src/init.js';
+import { config, init } from '../src/commands/init.js';
 import { ownPackage } from '../src/project.js';
-import { reset } from '../src/reset.js';
-import { addSource } from '../src/source.js';
+import { reset } from '../src/commands/reset.js';
+import { addSource } from '../src/commands/source.js';
 import { nodeAtLeast } from '../src/utils.js';
 
 if (!nodeAtLeast(MIN_NODE_MAJOR)) {

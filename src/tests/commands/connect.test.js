@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { connectHint } from '../connect.js';
-import { plain } from './helpers.js';
+import { connectHint } from '../../commands/connect.js';
+import { plain } from '../helpers.js';
 
 const SOURCES = [
   { name: 'jira', role: 'tracker', server: ['jira', 'atlassian'], auth: 'token' },

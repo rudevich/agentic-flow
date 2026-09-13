@@ -2,13 +2,13 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { cyan, dim, red } from './color.js';
-import { AGENTIC_DIR, ENV_FILE, GITIGNORE_FILE, MANIFEST_PATH } from './constants.js';
-import { createReporter, inside, removeIfEmpty, removePath, statOrNull } from './fsx.js';
-import { readManifest } from './manifest.js';
-import { createPrompt, interactive } from './prompt.js';
-import { findProjectRoot } from './project.js';
-import { hash } from './utils.js';
+import { cyan, dim, red } from '../platform/color.js';
+import { AGENTIC_DIR, ENV_FILE, GITIGNORE_FILE, MANIFEST_PATH } from '../constants.js';
+import { createReporter, inside, removeIfEmpty, removePath, statOrNull } from '../platform/fsx.js';
+import { readManifest } from '../model/manifest.js';
+import { createPrompt, interactive } from '../platform/prompt.js';
+import { findProjectRoot } from '../project.js';
+import { hash } from '../utils.js';
 
 /** Untracked or uncommitted content is unrecoverable once deleted. */
 function dirtyPaths(root, paths) {

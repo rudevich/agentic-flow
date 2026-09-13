@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { colorEnabled, green } from '../color.js';
+import { colorEnabled, green } from '../../platform/color.js';
 
 /** Runs `fn` with the environment the test needs, then puts it back. */
 function withEnv(vars, fn) {

@@ -3,11 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { init } from '../init.js';
-import { readManifest } from '../manifest.js';
-import { addSource } from '../source.js';
-import { readSources } from '../sources.js';
-import { silenced, tmpProject } from './helpers.js';
+import { init } from '../../commands/init.js';
+import { readManifest } from '../../model/manifest.js';
+import { addSource } from '../../commands/source.js';
+import { readSources } from '../../model/sources.js';
+import { silenced, tmpProject } from '../helpers.js';
 
 // node --test gives us no TTY, so both commands take their non-interactive path.
 const scaffold = (cwd) => silenced(() => init({ cwd, yes: true }));

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { cyan, dim } from './color.js';
+import { cyan, dim } from '../platform/color.js';
 import { printClaudeHint, printConnectHint } from './connect.js';
 import {
   AGENTIC_DIR,
@@ -12,7 +12,7 @@ import {
   LANGUAGE_MARKER,
   ROLES_MARKER,
   SPECIFICATOR_PATH,
-} from './constants.js';
+} from '../constants.js';
 import {
   copyTree,
   createReporter,
@@ -24,19 +24,19 @@ import {
   statOrNull,
   writeIfMissing,
   writeManaged,
-} from './fsx.js';
+} from '../platform/fsx.js';
 import {
   DEFAULT_LANGUAGE,
   applyBlock,
   applyDocLanguage,
   languageBlock,
   parseLang,
-} from './docs.js';
-import { classify, detectServers, mapRoles, rolesBlock, toolsLine } from './mcp.js';
-import { readSources, rolesOf } from './sources.js';
-import { createManifest, readManifest } from './manifest.js';
-import { findProjectRoot, ownPackage, projectName } from './project.js';
-import { TEMPLATES_DIR, fill, hash, readTemplate } from './utils.js';
+} from '../model/docs.js';
+import { classify, detectServers, mapRoles, rolesBlock, toolsLine } from '../model/mcp.js';
+import { readSources, rolesOf } from '../model/sources.js';
+import { createManifest, readManifest } from '../model/manifest.js';
+import { findProjectRoot, ownPackage, projectName } from '../project.js';
+import { TEMPLATES_DIR, fill, hash, readTemplate } from '../utils.js';
 
 const SUBDIRS = [
   ['skills', 'skills.README.md'],

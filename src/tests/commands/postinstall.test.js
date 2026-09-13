@@ -4,9 +4,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { MANIFEST_PATH } from '../constants.js';
-import { ownPackage, packageRoot } from '../project.js';
-import { tmpProject, writeJson } from './helpers.js';
+import { MANIFEST_PATH } from '../../constants.js';
+import { ownPackage, packageRoot } from '../../project.js';
+import { tmpProject, writeJson } from '../helpers.js';
 
 const escaped = (version) => version.replace(/\./g, '\\.');
 
@@ -16,7 +16,7 @@ function writeManifest(root, extra) {
 
 /** postinstall reads its situation from the environment, so run it as npm would. */
 function runPostinstall(env) {
-  return execFileSync(process.execPath, [path.join(packageRoot, 'src', 'postinstall.js')], {
+  return execFileSync(process.execPath, [path.join(packageRoot, 'src', 'commands', 'postinstall.js')], {
     encoding: 'utf8',
     env: { ...process.env, INIT_CWD: '', npm_config_global: '', ...env },
   });

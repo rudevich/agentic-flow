@@ -2,9 +2,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { BUILTIN_ROLES, BUILTIN_SOURCES, CLAUDE_DIR, ROLES_MARKER } from './constants.js';
+import { BUILTIN_ROLES, BUILTIN_SOURCES, CLAUDE_DIR, ROLES_MARKER } from '../constants.js';
 import { rolesOf } from './sources.js';
-import { readJson } from './utils.js';
+import { readJson } from '../utils.js';
 
 /** Where Claude Code keeps its own configuration, inside the user's home. */
 const claudeHome = (home, ...parts) => path.join(home, CLAUDE_DIR, ...parts);

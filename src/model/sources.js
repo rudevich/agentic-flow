@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { BUILTIN_ROLES, SKILLS_DIR, SOURCE_HEADING } from './constants.js';
-import { statOrNull } from './fsx.js';
-import { TEMPLATES_DIR } from './utils.js';
+import { BUILTIN_ROLES, SKILLS_DIR, SOURCE_HEADING } from '../constants.js';
+import { statOrNull } from '../platform/fsx.js';
+import { TEMPLATES_DIR } from '../utils.js';
 
 const SEED_SKILLS = path.join(TEMPLATES_DIR, 'seed', 'skills');
 

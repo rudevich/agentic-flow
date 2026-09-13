@@ -2,8 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { dim, green, red, yellow } from './color.js';
-import { PREFIX } from './constants.js';
-import { hash } from './utils.js';
+import { PREFIX } from '../constants.js';
+import { hash } from '../utils.js';
 
 /** The prefix every line carries, kept out of the way of what matters. */
 const tag = () => dim(PREFIX);

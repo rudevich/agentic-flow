@@ -1,17 +1,17 @@
 import path from 'node:path';
 
-import { cyan } from './color.js';
+import { cyan } from '../platform/color.js';
 import { printConnectHint } from './connect.js';
-import { ROLES_MARKER, SKILLS_DIR } from './constants.js';
-import { applyBlock } from './docs.js';
-import { createReporter, ensureDir, statOrNull, writeIfMissing } from './fsx.js';
+import { ROLES_MARKER, SKILLS_DIR } from '../constants.js';
+import { applyBlock } from '../model/docs.js';
+import { createReporter, ensureDir, statOrNull, writeIfMissing } from '../platform/fsx.js';
 import { applyToolsLine } from './init.js';
-import { createManifest } from './manifest.js';
-import { classify, detectServers, mapRoles, rolesBlock } from './mcp.js';
-import { createPrompt, interactive } from './prompt.js';
-import { findProjectRoot } from './project.js';
-import { readSources, rolesOf } from './sources.js';
-import { fill, readTemplate } from './utils.js';
+import { createManifest } from '../model/manifest.js';
+import { classify, detectServers, mapRoles, rolesBlock } from '../model/mcp.js';
+import { createPrompt, interactive } from '../platform/prompt.js';
+import { findProjectRoot } from '../project.js';
+import { readSources, rolesOf } from '../model/sources.js';
+import { fill, readTemplate } from '../utils.js';
 
 const NAME_RE = /^[a-z][a-z0-9-]*$/;
 

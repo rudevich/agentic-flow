@@ -12,9 +12,9 @@ import {
   statOrNull,
   writeIfMissing,
   writeManaged,
-} from '../fsx.js';
-import { hash } from '../utils.js';
-import { fakeReporter, opts, tmpDir } from './helpers.js';
+} from '../../platform/fsx.js';
+import { hash } from '../../utils.js';
+import { fakeReporter, opts, tmpDir } from '../helpers.js';
 
 describe('ensureDir', () => {
   it('creates a missing directory', () => {

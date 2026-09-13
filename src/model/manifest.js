@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { GITIGNORE_FILE, MANIFEST_PATH } from './constants.js';
-import { hash, readJson } from './utils.js';
+import { GITIGNORE_FILE, MANIFEST_PATH } from '../constants.js';
+import { hash, readJson } from '../utils.js';
 
 /**
  * Records what init created, so reset can undo exactly that and nothing else.

@@ -3,13 +3,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { config, init } from '../init.js';
-import { MANIFEST_PATH, ROLES_MARKER } from '../constants.js';
-import { readManifest } from '../manifest.js';
-import { hash } from '../utils.js';
-import { ownPackage } from '../project.js';
-import { addSource } from '../source.js';
-import { silenced, tmpProject, writeJson } from './helpers.js';
+import { config, init } from '../../commands/init.js';
+import { MANIFEST_PATH, ROLES_MARKER } from '../../constants.js';
+import { readManifest } from '../../model/manifest.js';
+import { hash } from '../../utils.js';
+import { ownPackage } from '../../project.js';
+import { addSource } from '../../commands/source.js';
+import { silenced, tmpProject, writeJson } from '../helpers.js';
 
 const run = (cwd, options = {}) => silenced(() => init({ cwd, ...options }));
 const read = (root, ...parts) => fs.readFileSync(path.join(root, ...parts), 'utf8');

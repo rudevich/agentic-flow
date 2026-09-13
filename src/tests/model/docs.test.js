@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { LANGUAGE_MARKER } from '../constants.js';
+import { LANGUAGE_MARKER } from '../../constants.js';
 import {
   DEFAULT_LANGUAGE,
   LANGUAGES,
@@ -12,8 +12,8 @@ import {
   languageBlock,
   languageLine,
   parseLang,
-} from '../docs.js';
-import { fakeReporter, opts, silenced, tmpDir } from './helpers.js';
+} from '../../model/docs.js';
+import { fakeReporter, opts, silenced, tmpDir } from '../helpers.js';
 
 const agentsWith = (body) => {
   const root = tmpDir();

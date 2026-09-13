@@ -3,11 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { init } from '../init.js';
-import { reset } from '../reset.js';
-import { MANIFEST_PATH } from '../constants.js';
-import { readManifest } from '../manifest.js';
-import { silenced, tmpProject } from './helpers.js';
+import { init } from '../../commands/init.js';
+import { reset } from '../../commands/reset.js';
+import { MANIFEST_PATH } from '../../constants.js';
+import { readManifest } from '../../model/manifest.js';
+import { silenced, tmpProject } from '../helpers.js';
 
 const scaffold = async () => {
   const root = tmpProject();

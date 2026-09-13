@@ -1,5 +1,5 @@
-import { bold, cyan, dim, red, yellow } from './color.js';
-import { rolesOf } from './sources.js';
+import { bold, cyan, dim, red, yellow } from '../platform/color.js';
+import { rolesOf } from '../model/sources.js';
 
 const HOW = [
   'claude mcp add --transport http <name> https://<host>/mcp',

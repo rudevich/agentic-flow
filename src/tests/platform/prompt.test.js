@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { interactive } from '../prompt.js';
+import { interactive } from '../../platform/prompt.js';
 
 describe('interactive', () => {
   // Everything downstream hangs on this: no TTY means ask nobody anything.

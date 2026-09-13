@@ -33,11 +33,11 @@ back.
 | Preview without writing | `node bin/agentic-flow.js init --dry-run` |
 | Undo the scaffold | `node bin/agentic-flow.js reset --dry-run` |
 | Declare a source | `node bin/agentic-flow.js source add <name> --matches <url-fragment>` |
-| Syntax check | `node --check src/*.js bin/agentic-flow.js` |
+| Syntax check | `node --check bin/agentic-flow.js && find src -name '*.js' -exec node --check {} \;` |
 | See what would ship | `npm pack --dry-run` |
 
-No build step. `npm test` is `node --test`, which finds `src/tests/*.test.js` by
-itself.
+No build step. `npm test` is `node --test`, which finds every
+`src/tests/**/*.test.js` by itself, subfolders included.
 
 **Node 24 or newer, and nothing older.** `engines` says so, and the CLI checks it
 on every run in `bin/agentic-flow.js`. That check exists because `engines` only
@@ -52,16 +52,26 @@ dir, then `npm i -D file:/path/to/this/repo`.
 
 ## Where things live in `src/`
 
-| File | What belongs in it |
-| --- | --- |
-| `constants.js` | every name the package writes into a project, and every marker it owns inside a file it does not. Imports nothing but `node:path`. |
-| `utils.js` | small helpers with no opinion about the scaffold: `hash`, `readJson`, `readTemplate`, `fill`, `nodeAtLeast`. |
-| `fsx.js` | everything that touches the filesystem and reports it. |
-| `project.js` | where the package is, where the project is. Imports nothing of ours, so it can never close a cycle. |
+Four layers. Each one reaches downwards only, and
+`src/tests/layers.test.js` fails the build if that stops being true.
+
+| Layer | Files | What belongs in it |
+| --- | --- | --- |
+| foundation | `constants.js`, `utils.js`, `project.js` | names and markers, pure helpers, and where the package and the project are. These import nothing of ours. |
+| `platform/` | `fsx.js`, `color.js`, `prompt.js` | everything that touches the filesystem, the terminal or stdin. |
+| `model/` | `manifest.js`, `sources.js`, `mcp.js`, `docs.js` | what the package knows: what it wrote, what a source declares, which server fills a role, which block of a document is ours. |
+| `commands/` | `init.js`, `reset.js`, `source.js`, `postinstall.js`, `connect.js` | one file per CLI verb, plus the text those verbs print. `init.js` holds both `init` and `config`. |
+
+`src/tests/` mirrors those folders, and every module has a test in the matching
+one.
 
 Put a literal in `constants.js` the moment a second file needs it. Put a helper
 in `utils.js` the moment a second file would copy it. A path or a marker spelled
 out in two modules is a bug waiting for one of them to change.
+
+`project.js` sits in the foundation and imports nothing of ours on purpose.
+`utils.js` needs `packageRoot` from it, so anything it imported would be reachable
+from every layer.
 
 ## Documents under `src/templates/`
 
@@ -85,7 +95,7 @@ to a contract that `src/tests/templates.test.js` enforces:
   rewritten only while it still matches its hash in the manifest, byte for byte
   what we wrote. A conflict produces a warning with a manual fix. `--force` only
   repoints a symlink.
-- `src/postinstall.js` never fails an install and never edits the host
+- `src/commands/postinstall.js` never fails an install and never edits the host
   `package.json`: every path exits 0.
 - `reset` deletes only what `agentic/.agentic-manifest.json` records. It never
   removes a directory recursively, and never a file changed since init unless

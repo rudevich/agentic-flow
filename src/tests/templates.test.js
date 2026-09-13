@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { parseSource } from '../sources.js';
+import { parseSource } from '../model/sources.js';
 import { TEMPLATES_DIR } from '../utils.js';
 
 /**

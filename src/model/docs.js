@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { AGENTS_FILE, LANGUAGE_MARKER } from './constants.js';
-import { statOrNull } from './fsx.js';
+import { AGENTS_FILE, LANGUAGE_MARKER } from '../constants.js';
+import { statOrNull } from '../platform/fsx.js';
 
 export const LANGUAGES = {
   english: 'Write every document you generate in English, whatever the language of the request.',

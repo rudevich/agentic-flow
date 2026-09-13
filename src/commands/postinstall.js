@@ -1,6 +1,6 @@
-import { PREFIX } from './constants.js';
-import { readManifest } from './manifest.js';
-import { findProjectRoot, ownPackage, packageRoot } from './project.js';
+import { PREFIX } from '../constants.js';
+import { readManifest } from '../model/manifest.js';
+import { findProjectRoot, ownPackage, packageRoot } from '../project.js';
 import path from 'node:path';
 
 /**
