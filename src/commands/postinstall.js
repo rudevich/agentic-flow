@@ -23,11 +23,11 @@ function main() {
     const now = ownPackage().version;
     const was = manifest.packageVersion; // null in manifests written before we recorded it
     const what = was === now ? `reinstalled ${now}` : `updated ${was ? `${was} -> ` : 'to '}${now}`;
-    console.log(`${PREFIX} ${what} — run \`npx agentic-flow init\` to refresh`);
+    console.log(`${PREFIX} ${what} — run \`npx @rudevich/agentic-flow init\` to refresh`);
     return;
   }
 
-  console.log(`${PREFIX} installed — run \`npx agentic-flow init\` to scaffold`);
+  console.log(`${PREFIX} installed — run \`npx @rudevich/agentic-flow init\` to scaffold`);
 }
 
 try {

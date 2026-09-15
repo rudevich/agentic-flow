@@ -6,7 +6,10 @@ One directory per ticket, everything committed.
 tasks/<KEY>/
 ├── requirements.md   # written by the specificator, accepted by a human
 ├── subtasks.md       # written by the planner, after that acceptance
-└── sources/          # snapshots of the ticket, analytics doc, design
+└── sources/          # one file per page, written by the readers
+    ├── ticket/PROJ-123.md
+    ├── analytics/checkout-flow.md
+    └── design/checkout.md
 ```
 
 `<KEY>` comes from the ticket URL. `…/browse/PROJ-123` gives `PROJ-123`.
@@ -39,6 +42,21 @@ Calling `/plan` is the acceptance signal. It means a person read the
 specification. Unanswered `Open questions` do not block it, but the planner shows
 them and asks before decomposing.
 
+## One reader per link
+
+Every page is fetched by its own `reader` subagent, one per link, and they run at
+the same time. A reader returns about twenty lines: where it put the snapshot,
+the facts it found with their anchors, and the links on the page. The page itself
+never leaves that subagent.
+
+That is what makes a ticket with four Confluence pages and two designs possible
+at all. Without it the raw responses alone would fill the context before the
+first requirement was written.
+
+Five links per source per round is the limit. Anything past it is listed in
+`Sources` as `not read (over the limit)`, and named under `Missing in sources`.
+A link farm then produces a short specification instead of an exhausted run.
+
 ## Why snapshot the sources
 
 The analytics doc and the design keep moving. Without a copy taken at
@@ -46,10 +64,11 @@ specification time you cannot tell later whether the code drifted or the spec
 did. Each snapshot carries its URL and the time it was fetched.
 
 A source that was never read leaves a row rather than a silence. The `Sources`
-table in `requirements.md` says one of `skipped (--no-figma)`,
-`unavailable — no design server`, or "no link in the ticket". What that source
-would have answered is listed under `Missing in sources`. Requirements are never
-filled in from the sources that did load.
+table in `requirements.md` gives the reason. It is one of
+`skipped (--no-figma)`, `unavailable — no design server`,
+`not read (over the limit)`, or "no link in the ticket". What that source would
+have answered is listed under `Missing in sources`. Requirements are never filled
+in from the sources that did load.
 
 Every file also carries the full ticket URL near the top, so a file opened on its
 own still says where it came from.

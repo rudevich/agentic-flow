@@ -25,7 +25,7 @@ describe('source add', () => {
     const declared = readSources(root).find(({ name }) => name === 'notion');
     assert.equal(declared.role, 'research');
     assert.deepEqual(declared.matches, ['notion.so', 'notion.site']);
-    assert.equal(declared.writes, 'sources/notion.md');
+    assert.equal(declared.writes, 'sources/notion');
     assert.equal(declared.auth, 'none');
   });
 

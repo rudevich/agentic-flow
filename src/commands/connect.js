@@ -25,7 +25,7 @@ export function connectHint(sources, mapping) {
 
   const lines = [
     yellow(`no MCP server for: ${roles.join(', ')}`),
-    'connect one, then run `agentic-flow config`:',
+    'connect one, then run `npx @rudevich/agentic-flow config`:',
     ...HOW.map((line) => `  ${cyan(line)}`),
     "which server names fill which role, from the skills' ## Source blocks:",
   ];
@@ -59,12 +59,12 @@ const WHAT = {
 const FIX = {
   dir: [
     'either move it aside and let init link it:',
-    `  ${cyan('mv .claude/* agentic/ && rmdir .claude && npx agentic-flow init')}`,
+    `  ${cyan('mv .claude/* agentic/ && rmdir .claude && npx @rudevich/agentic-flow init')}`,
     'or keep it and link the parts:',
     ...['skills', 'agents', 'hooks'].map((dir) => `  ${cyan(`ln -s ../agentic/${dir} .claude/${dir}`)}`),
   ],
-  file: ['remove it and run init again:', `  ${cyan('rm .claude && npx agentic-flow init')}`],
-  symlink: ['repoint it:', `  ${cyan('npx agentic-flow init --force')}`],
+  file: ['remove it and run init again:', `  ${cyan('rm .claude && npx @rudevich/agentic-flow init')}`],
+  symlink: ['repoint it:', `  ${cyan('npx @rudevich/agentic-flow init --force')}`],
 };
 
 /**

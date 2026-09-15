@@ -21,7 +21,13 @@ export const CLAUDE_FILE = 'CLAUDE.md';
 export const CLAUDE_DIR = '.claude';
 export const GITIGNORE_FILE = '.gitignore';
 export const MANIFEST_PATH = path.join(AGENTIC_DIR, '.agentic-manifest.json');
-export const SPECIFICATOR_PATH = path.join(AGENTIC_DIR, 'agents', 'specificator.md');
+
+/**
+ * Agents whose `tools:` line we generate from the servers this project can see.
+ * Only the reader talks to MCP: it is the one that fetches pages, and keeping it
+ * alone there is what stops a page reaching anybody else's context.
+ */
+export const MCP_AGENT_PATHS = [path.join(AGENTIC_DIR, 'agents', 'reader.md')];
 
 /** Written by hand, if at all — the package stopped managing tokens. */
 export const ENV_FILE = '.env.agentic';

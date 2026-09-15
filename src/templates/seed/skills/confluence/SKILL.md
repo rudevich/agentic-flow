@@ -1,6 +1,6 @@
 ---
 name: confluence
-description: Copy a Confluence page into agentic/tasks/<KEY>/sources/analytics.md and report the Figma links it contains. Use when the spec skill sends an analytics link here, or when asked to save a copy of an analytics document.
+description: Copy a Confluence page into agentic/tasks/<KEY>/sources/analytics/ and report its facts and the Figma links it contains. Use when a reader agent is sent an analytics link, or when asked to save a copy of an analytics document.
 ---
 
 # Read an analytics document
@@ -8,8 +8,8 @@ description: Copy a Confluence page into agentic/tasks/<KEY>/sources/analytics.m
 You are given one Confluence URL. You copy the page into a file. You report the
 links you found on it. You do nothing else.
 
-The `spec` skill gives you a link it found **inside the ticket**. Never look for
-a page yourself.
+A `reader` agent runs you with one link that was found **inside the ticket**.
+Never look for a page yourself.
 
 ## Which URLs are yours
 
@@ -35,7 +35,11 @@ Open a child page only if this page links to it as part of the specification.
 
 ## What to write
 
-Write one file: `sources/analytics.md`. Copy the shape below.
+Write one file: `sources/analytics/<slug>.md`. The slug is the page title in
+lowercase with dashes, for example `sources/analytics/checkout-flow.md`. One page
+is one file, so two pages never land on top of each other.
+
+Copy the shape below.
 
 ```markdown
 # Analytics — <page title>
@@ -52,19 +56,26 @@ Use the current date and time. Do not copy the example.
 Replace every `<…>` with a real value. No angle brackets may remain in what you
 write.
 
-If you were given more than one analytics page, put one section per page in this
-same file. Each section gets its own `**Source:**` line and its own fetch time.
-
 ## What to report back
 
-Answer `spec` in exactly this shape, and nothing else:
+Answer in exactly this shape, and nothing else:
 
 ```
-written: agentic/tasks/PROJ-123/sources/analytics.md
+source: confluence
+url: https://co.atlassian.net/wiki/spaces/PROD/pages/12345
+written: agentic/tasks/PROJ-123/sources/analytics/checkout-flow.md
+facts:
+- §2.1 a cart keeps its items for 30 days
+- §3.4 guest checkout is out of scope for this release
 links:
 - https://www.figma.com/design/abc123/Checkout -> figma
 - https://dashboard.internal/metrics -> not recognised, not opened
 ```
+
+`facts` is at most 25 lines, one line each, the section number first. Copy
+numbers exactly: "30 days" stays "30 days". A line with no section number is not
+a fact, so leave it in the snapshot only. Do not turn a fact into a requirement:
+that is the specificator's job.
 
 How to fill the `links` list:
 
@@ -87,12 +98,14 @@ Two cases, and both end the same way:
 Write no file. Answer in this shape:
 
 ```
+source: confluence
+url: https://co.atlassian.net/wiki/spaces/PROD/pages/12345
 written: none
 reason: the page URL does not load
 ```
 
-Do not guess what the page said. `spec` writes your reason into the `Sources`
-table and carries on with the ticket alone.
+Do not guess what the page said. Your reason goes into the `Sources` table of
+`requirements.md`, and the run carries on without this page.
 
 Whatever this page would have answered is now unknown. It belongs under
 `Missing in sources` in `requirements.md`, not in a requirement.
@@ -105,7 +118,7 @@ What `spec` routes by and what `agentic-flow` wires up. Keep it accurate.
 | --- | --- |
 | role | docs |
 | matches | /wiki/, /spaces/, /pages/ |
-| writes | sources/analytics.md |
+| writes | sources/analytics |
 | server | confluence, atlassian |
 | auth | token |
 | links | follow |

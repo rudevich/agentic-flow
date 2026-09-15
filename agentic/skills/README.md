@@ -49,7 +49,7 @@ roles table from it:
 | --- | --- |
 | `role` | any name you like. The `MCP roles` table in `AGENTS.md` grows to fit. |
 | `matches` | URL fragments. No regular expressions, case-insensitive. |
-| `writes` | the file under `sources/` this skill fills in. |
+| `writes` | the directory under `sources/` its snapshots go in, one file per page. |
 | `server` | MCP server names that can fill the role. A list, so one `atlassian` server can serve two skills. |
 | `auth` | `token` if its server needs one, `none` if it connects some other way. Say how in the skill itself. |
 | `links` | `follow` if what it reads leads on to other sources, `stop` if the chain ends there. |
@@ -73,9 +73,14 @@ Copy the shape of `jira/SKILL.md`. These sections, in this order:
 3. `## What to copy`
 4. `## What to write` — the output template, plus the rule that the timestamp is
    the current one and no angle brackets may survive
-5. `## What to report back` — the `written:` and `links:` answer `spec` expects
+5. `## What to report back` — the digest a `reader` answers with: `source:`,
+   `url:`, `written:`, `facts:` and `links:`, with `facts` capped at 25 lines
 6. `## If you cannot read …` — what to answer when the page will not load
 7. `## Source` — the table above
 
 `spec` depends on sections 5 and 7. The rest is what keeps a weaker model from
 inventing content it never read.
+
+A source skill is never called directly by `spec`. A `reader` subagent runs it,
+one run per link, so the page stays in that subagent and only the digest comes
+back.

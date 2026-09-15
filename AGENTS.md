@@ -7,7 +7,7 @@ Instructions for coding agents working in this repository.
 `agentic` is a zero-dependency npm package that scaffolds the agent layout of a
 project.
 
-`npx agentic-flow init` does four things. It creates
+`npx @rudevich/agentic-flow init` does four things. It creates
 `agentic/{skills,agents,hooks,tasks}`. It seeds the task pipeline: the
 `specificator` and `planner` subagents, the `spec` router and `plan` skills, and
 the `jira` / `confluence` / `figma` source skills, to which `agentic-flow source
@@ -29,7 +29,7 @@ back.
 | Task | Command |
 | --- | --- |
 | Run the tests | `npm test` |
-| Scaffold / re-check this repo | `npx agentic-flow init` |
+| Scaffold / re-check this repo | `npx @rudevich/agentic-flow init` |
 | Preview without writing | `node bin/agentic-flow.js init --dry-run` |
 | Undo the scaffold | `node bin/agentic-flow.js reset --dry-run` |
 | Declare a source | `node bin/agentic-flow.js source add <name> --matches <url-fragment>` |

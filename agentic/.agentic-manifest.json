@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "packageVersion": "0.2.0",
-  "writtenAt": "2026-09-13T20:08:17.390Z",
+  "packageVersion": "0.2.2",
+  "writtenAt": "2026-09-15T07:18:37.611Z",
   "entries": [
     {
       "path": "agentic",
@@ -19,7 +19,7 @@
     {
       "path": "agentic/skills/README.md",
       "type": "file",
-      "hash": "dc06de7a634358de"
+      "hash": "f74923cbf7cfbccb"
     },
     {
       "path": "agentic/agents",
@@ -61,7 +61,7 @@
     {
       "path": "agentic/tasks/README.md",
       "type": "file",
-      "hash": "0c650a8d232b2aec"
+      "hash": "816169bb6025099f"
     },
     {
       "path": "agentic/agents/planner.md",
@@ -71,7 +71,7 @@
     {
       "path": "agentic/agents/specificator.md",
       "type": "file",
-      "hash": "02dc84fde3b8a13a"
+      "hash": "97f84e2433030e99"
     },
     {
       "path": "agentic/skills/confluence",
@@ -80,7 +80,7 @@
     {
       "path": "agentic/skills/confluence/SKILL.md",
       "type": "file",
-      "hash": "6f17cb0dfd43a063"
+      "hash": "cf3d5dadb7337b7d"
     },
     {
       "path": "agentic/skills/figma",
@@ -89,7 +89,7 @@
     {
       "path": "agentic/skills/figma/SKILL.md",
       "type": "file",
-      "hash": "26a5ffee1b8e0ea0"
+      "hash": "0acd6e9d9bfa0636"
     },
     {
       "path": "agentic/skills/jira",
@@ -98,7 +98,7 @@
     {
       "path": "agentic/skills/jira/SKILL.md",
       "type": "file",
-      "hash": "7b18aefd09381e8c"
+      "hash": "33393981569b96eb"
     },
     {
       "path": "agentic/skills/plan",
@@ -116,12 +116,17 @@
     {
       "path": "agentic/skills/spec/SKILL.md",
       "type": "file",
-      "hash": "d317a72e1d8c6553"
+      "hash": "8fa9f137e8b1a40d"
     },
     {
       "path": ".claude",
       "type": "symlink",
       "target": "agentic"
+    },
+    {
+      "path": "agentic/agents/reader.md",
+      "type": "file",
+      "hash": "4121f84982202533"
     }
   ]
 }

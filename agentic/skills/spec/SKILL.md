@@ -5,57 +5,71 @@ description: Turn a ticket URL into a reviewable requirements.md. Read the ticke
 
 # Write requirements.md from a ticket URL
 
-You are given the URL of one ticket. You read it. You read the pages it links to.
+You are given the URL of one ticket. Readers fetch it and everything it links to.
 You write one file: `requirements.md`. You do not write code.
 
-You do not read the pages yourself. Other skills do that, one per kind of link:
-`jira` reads tickets, `confluence` reads analytics pages, `figma` reads designs.
-Your job is to decide which skill gets which link, and to write the result.
+You never open a page yourself. You send one `reader` agent per link, and each
+reader hands you back a few lines. The pages stay in the readers.
 
-Run inside the `specificator` subagent. It has no `Edit` and no `Bash`, so it
-cannot change code.
+That is the whole point of this design. A ticket with four links would otherwise
+pour four pages into your context and leave no room to think.
+
+Steps 1 to 5 run in the main session. Step 6 onwards runs in the `specificator`
+subagent, which has no `Edit` and no `Bash`, so it cannot change code.
 
 ## What you create
 
 ```
 agentic/tasks/<KEY>/
-├── requirements.md     the file you write
+├── requirements.md     written by the specificator
 ├── subtasks.md         NOT yours. The plan skill writes it later.
 └── sources/
-    ├── ticket.md       written by the jira skill
-    ├── analytics.md    written by the confluence skill
-    └── design.md       written by the figma skill
+    ├── ticket/         one file per ticket, written by a reader
+    ├── analytics/      one file per page, written by a reader
+    └── design/         one file per design, written by a reader
 ```
 
 Write nothing outside `agentic/tasks/<KEY>/`.
 
-## How to call another skill
+## How to send a reader
 
-You never open a page yourself. You call the skill that owns it.
-
-Calling a skill means using the Skill tool with that skill's name. Calling the
-`jira` skill means `skill: jira`. Reading the text of `jira/SKILL.md` is not
-calling it.
-
-Every source skill answers you in the same shape:
+One link, one reader. Use the Agent tool with the `reader` agent, and tell it
+three things: the URL, the name of the skill that reads it, and the task folder.
 
 ```
-written: agentic/tasks/PROJ-123/sources/ticket.md
+Read https://co.atlassian.net/wiki/spaces/PROD/pages/12345
+with the confluence skill, for agentic/tasks/PROJ-123/
+```
+
+Send every reader of one round in a single batch, so they run at the same time.
+
+Each reader answers in the same shape:
+
+```
+source: confluence
+url: https://co.atlassian.net/wiki/spaces/PROD/pages/12345
+written: agentic/tasks/PROJ-123/sources/analytics/checkout-flow.md
+facts:
+- §2.1 a cart keeps its items for 30 days
 links:
-- https://co.atlassian.net/wiki/spaces/PROD/pages/12345 -> confluence
-- https://dashboard.internal/metrics -> not recognised, not opened
+- https://www.figma.com/design/abc123/Checkout -> figma
 ```
 
 or, when it could not read its page:
 
 ```
+source: confluence
+url: https://co.atlassian.net/wiki/spaces/PROD/pages/12345
 written: none
 reason: no MCP server for the docs role
 ```
 
-Use the `links` list for step 5. Use the `written` line for step 6. If a skill
-answers in some other shape, treat what you can read as the answer and never
-invent the rest.
+Keep every digest. `links` feeds step 5, `written` feeds step 6, and `facts` is
+what the requirements are written from. If a reader answers in some other shape,
+use what you can read and never invent the rest.
+
+Never ask a reader for the page itself. If you find yourself wanting the whole
+text, you want one exact sentence: open that one snapshot file with `Read`.
 
 ## Step 1. Read the command
 
@@ -108,7 +122,7 @@ Each `## Source` section is a small table. Use it like this:
 | --- | --- |
 | `role` | which MCP server reads it. `AGENTS.md` says which server fills the role. |
 | `matches` | text fragments. A URL containing one of them goes to this skill. |
-| `writes` | the file under `sources/` that this skill fills in. |
+| `writes` | the directory under `sources/` where its snapshots go, one file per page. |
 | `links` | `follow` means route the links it finds. `stop` means do not. |
 
 A project starts with three sources: `jira` (role `tracker`), `confluence`
@@ -119,12 +133,12 @@ table is whatever you found in step 3, not this list.
 
 Find the source whose `role` is `tracker`. That is your entry point.
 
-Call that skill, as described in "How to call another skill". It writes its file
-and answers you with the links it found in the ticket.
+Send one reader: the ticket URL, that skill's name, the task folder. It writes
+the snapshot and answers with the ticket's facts and the links in it.
 
-If you have no tool for the `tracker` role: stop. Say which role is missing.
-Write no `requirements.md`. You cannot specify a ticket you could not read, and
-you must never guess what a ticket says from its key.
+If the reader answers `written: none`: stop. Say what it reported. Write no
+`requirements.md`. You cannot specify a ticket nobody could read, and you must
+never guess what a ticket says from its key.
 
 ## Step 5. Follow the links
 
@@ -136,21 +150,41 @@ Take the links the ticket gave you. For each one, in order:
    - Yes → skip it. Remember the flag for the `Sources` table.
 3. Have you already read this exact URL?
    - Yes → skip it.
-4. Otherwise → call that source skill. It writes its file and may answer with
-   more links.
+4. Would this be the sixth link for that source in this round?
+   - Yes → skip it. Remember it for the `Sources` table and for
+     `Missing in sources`.
+5. Otherwise → it gets a reader.
 
-Now take the links those skills gave you and repeat the same four checks once.
+Send every reader that survived those checks in one batch. Then take the links
+those readers gave you and repeat the same five checks once, as a second batch.
 
-Then stop following links. Two steps away from the ticket is the limit:
+Then stop following links. Two rounds away from the ticket is the limit:
 ticket → analytics → design. A source whose declaration says `links: stop` gives
 you nothing to follow.
 
-Never invent a URL. Only open links that were written in a page you have already
-read. Never search for a page by its title.
+**Five links per source per round, and no more.** A ticket that links twelve
+pages gets five of them read and seven listed as unread. A short specification
+that says what it did not read is worth more than a run that dies halfway.
 
-Two links of the same kind, for example two Confluence pages? The source skill
-puts one section per page in its one file. Each page gets its own row in
-`Sources`.
+Never invent a URL. Only send a reader to a link that was written in a page that
+had already been read. Never search for a page by its title.
+
+Two links of the same kind, for example two Confluence pages? Two readers, two
+files, two rows in `Sources`.
+
+### Hand over when the reading is done
+
+You now hold one digest per page and no pages. Send them all to the
+`specificator` agent, with the task folder and the flags that were used:
+
+```
+Write agentic/tasks/PROJ-123/requirements.md from these digests.
+Flags: --no-figma
+<every digest, word for word>
+```
+
+The specificator follows steps 6 to 9 and writes the file. Everything below this
+line is written for it.
 
 ## Step 6. Account for every source
 
@@ -161,8 +195,12 @@ table. Every source is in exactly one of these states. Write the matching row:
 | --- | --- |
 | read | `\| Design \| <url> \| <date and time> \|` |
 | excluded by a flag | `\| Design \| skipped (--no-figma) \| — \|` |
-| the skill answered `written: none` | `\| Design \| unavailable — <reason> \| — \|` |
+| the reader answered `written: none` | `\| Design \| unavailable — <reason> \| — \|` |
+| over the five-link limit | `\| Analytics \| 7 more not read (over the limit) \| — \|` |
 | no link to it anywhere | `\| Design \| no link in the ticket or the analytics doc \| — \|` |
+
+One row per page that was read, not one row per source: two Confluence pages are
+two rows.
 
 Only the ticket is fatal. If any other source is missing, keep going and write
 `requirements.md`. Everything that source would have told you goes under

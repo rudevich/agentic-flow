@@ -25,7 +25,7 @@ function runPostinstall(env) {
 describe('postinstall', () => {
   it('points at the command to run', () => {
     const output = runPostinstall({ INIT_CWD: tmpProject() });
-    assert.match(output, /npx agentic-flow init/);
+    assert.match(output, /npx @rudevich\/agentic-flow init/);
   });
 
   it('leaves the host package.json untouched', () => {
@@ -59,7 +59,7 @@ describe('postinstall', () => {
     const output = runPostinstall({ INIT_CWD: root });
 
     assert.match(output, new RegExp(`updated 0\\.0\\.1 -> ${escaped(ownPackage().version)}`));
-    assert.match(output, /npx agentic-flow init/);
+    assert.match(output, /npx @rudevich\/agentic-flow init/);
   });
 
   it('still says it updated when the manifest predates the version field', () => {

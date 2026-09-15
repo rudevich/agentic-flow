@@ -10,11 +10,11 @@
 
 ```bash
 npm i -D @rudevich/agentic-flow
-npx agentic-flow init
+npx @rudevich/agentic-flow init
 ```
 
 Установка **ничего не меняет** в вашем `package.json` — `postinstall` только
-печатает, какую команду запустить. Всё создаётся на `npx agentic-flow init`.
+печатает, какую команду запустить. Всё создаётся на `npx @rudevich/agentic-flow init`.
 Дальше — «Флоу пользователя» ниже.
 
 Из локальной копии или из git, если нужна неопубликованная версия:
@@ -30,7 +30,7 @@ npm i -D git+ssh://git@github.com/rudevich/agentic-flow.git
 project/
 ├── agentic/
 │   ├── skills/   spec, plan, jira, confluence, figma (+ ваши)
-│   ├── agents/   specificator, planner
+│   ├── agents/   reader, specificator, planner
 │   ├── hooks/
 │   └── tasks/    одна директория на тикет
 ├── .claude   -> agentic
@@ -54,7 +54,7 @@ npm i -D @rudevich/agentic-flow
 ### 2. Развернуть структуру
 
 ```bash
-npx agentic-flow init
+npx @rudevich/agentic-flow init
 ```
 
 Директории, `AGENTS.md`, симлинки — и сразу скан MCP: что нашлось, разложено по
@@ -89,7 +89,7 @@ ln -s ../agentic/hooks .claude/hooks
 их нашёл и связал, проверяется двумя строками:
 
 ```bash
-grep '^tools:' agentic/agents/specificator.md   # содержит mcp__<server>
+grep '^tools:' agentic/agents/reader.md   # содержит mcp__<server>
 sed -n '/mcp-roles/,/^$/p' AGENTS.md            # роли заполнены
 ```
 
@@ -98,11 +98,11 @@ sed -n '/mcp-roles/,/^$/p' AGENTS.md            # роли заполнены
 
 ```bash
 claude mcp add --transport http atlassian https://<host>/mcp
-npx agentic-flow config
+npx @rudevich/agentic-flow config
 ```
 
 Пропустить `config` нельзя: без него `/spec` запустится и **остановится** — у
-спецификатора нет инструмента на роль `tracker`, а содержимое тикета не
+ридера нет инструмента на роль `tracker`, а содержимое тикета не
 выдумывается. Остальные роли не блокируют: источник помечается `unavailable`, а
 пробел уезжает в `Missing in sources`.
 
@@ -133,7 +133,7 @@ npx agentic-flow config
 ### 7. Обновлять пакет
 
 ```bash
-npm i -D @rudevich/agentic-flow@latest && npx agentic-flow init
+npm i -D @rudevich/agentic-flow@latest && npx @rudevich/agentic-flow init
 ```
 
 Именно `i … @latest`, а не `npm update`: `update` не выходит за диапазон из
@@ -182,6 +182,21 @@ npm i -D @rudevich/agentic-flow@latest && npx agentic-flow init
 берёт из самой ссылки. Дальше он идёт только по ссылкам, которые нашёл: адреса
 не собирает и страницы по названию не ищет.
 
+### По сабагенту на ссылку
+
+Каждую страницу забирает свой сабагент `reader` — один на ссылку, все сразу.
+Наружу он отдаёт строк двадцать: куда положил снимок, какие факты нашёл (каждый
+с якорем вроде `§2.1`) и какие ссылки на странице. Сама страница остаётся внутри
+сабагента.
+
+Это и делает возможным тикет с четырьмя конфлюенсами и двумя макетами. Без
+этого один только сырой ответ MCP забил бы контекст раньше, чем будет написано
+первое требование.
+
+Лимит — пять ссылок на источник за круг. Всё сверх попадает в `Sources` строкой
+`not read (over the limit)` и в `Missing in sources`. Тикет-помойка даёт короткую
+спецификацию, а не захлебнувшийся прогон.
+
 ### Источники — отдельные скиллы
 
 Читает не один монолит: `spec` только маршрутизирует, а каждый вид ссылки знает
@@ -219,7 +234,7 @@ agentic-flow source add notion --role docs --matches notion.so,notion.site
 | --- | --- |
 | role | docs |
 | matches | notion.so, notion.site |
-| writes | sources/analytics.md |
+| writes | sources/analytics |
 | server | notion |
 | auth | token |
 | links | follow |
@@ -242,7 +257,7 @@ agentic-flow source add notion --role docs --matches notion.so,notion.site
 
 **Нет ссылки на аналитику?** Спецификатор останавливается, не записав
 `requirements.md`, и спрашивает: считать ли описание тикета аналитикой. При
-согласии описание кладётся в `sources/analytics.md` дословно, а в `Sources`
+согласии описание кладётся в `sources/analytics/` дословно, а в `Sources`
 остаётся пометка, что это решение человека. С `--no-confluence` вопрос не
 задаётся — решение уже принято флагом, и в `Sources` стоит `skipped by
 --no-confluence`.
@@ -297,7 +312,7 @@ none` в её объявлении. Как только сервер появи�
 По умолчанию агенты пишут документы **на языке запроса**. Английский — флагом:
 
 ```bash
-npx agentic-flow init --lang english
+npx @rudevich/agentic-flow init --lang english
 agentic-flow config --lang english     # поменять потом
 ```
 

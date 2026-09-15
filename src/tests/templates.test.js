@@ -23,7 +23,7 @@ const skillFile = (name) => path.join(SEED_SKILLS, name, 'SKILL.md');
 
 const SOURCE_SKILLS = ['jira', 'confluence', 'figma'];
 const ROUTER_SKILLS = ['spec', 'plan'];
-const AGENTS = ['specificator', 'planner'];
+const AGENTS = ['specificator', 'planner', 'reader'];
 
 /** Every shipped document a model reads, by path. */
 function everyDocument() {
@@ -200,13 +200,22 @@ describe('a source skill', () => {
     }
   });
 
-  // spec reads this answer. A skill that invents its own shape breaks the router.
-  it('states the answer spec expects', () => {
+  // The reader returns this, and spec routes and drafts from it. A skill that
+  // invents its own shape breaks both.
+  it('states the digest a reader answers with', () => {
     for (const file of files) {
       const content = read(file);
 
-      assert.match(content, /written:/, `${file} never shows the written: line`);
-      assert.match(content, /links:/, `${file} never shows the links: line`);
+      for (const line of ['source:', 'url:', 'written:', 'facts:', 'links:']) {
+        assert.match(content, new RegExp(line), `${file} never shows the ${line} line`);
+      }
+    }
+  });
+
+  // Twenty-five lines is what keeps a fan-out of readers inside a small context.
+  it('caps how much a digest may carry', () => {
+    for (const file of files) {
+      assert.match(read(file), /at most 25 lines/, `${file} sets no cap on facts`);
     }
   });
 
@@ -264,11 +273,21 @@ describe('an agent', () => {
     }
   });
 
-  it('keeps the tools line where init rewrites it', () => {
-    // applyToolsLine replaces /^tools:.*$/m, and the specificator's line is the
-    // generated one. Moving it out of the frontmatter would break that.
-    const lines = read(path.join(SEED_AGENTS, 'specificator.md')).split('\n');
+  it('keeps the generated tools line where init rewrites it', () => {
+    // applyToolsLine replaces /^tools:.*$/m in the reader, the one agent that
+    // fetches. Moving that line out of the frontmatter would break it.
+    const lines = read(path.join(SEED_AGENTS, 'reader.md')).split('\n');
     assert.equal(lines[3], '{{MCP_TOOLS}}');
-    assert.match(read(path.join(SEED_AGENTS, 'planner.md')), /^tools: /m);
+  });
+
+  // Only the reader may reach a server. The others are meant to be unable to
+  // fetch, which is what keeps a page out of their context.
+  it('gives no other agent a generated tools line', () => {
+    for (const name of ['specificator', 'planner']) {
+      const content = read(path.join(SEED_AGENTS, `${name}.md`));
+
+      assert.doesNotMatch(content, /\{\{MCP_TOOLS\}\}/, name);
+      assert.match(content, /^tools: Read, Grep, Glob, Write$/m, name);
+    }
   });
 });

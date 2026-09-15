@@ -11,7 +11,7 @@ import {
   GITIGNORE_FILE,
   LANGUAGE_MARKER,
   ROLES_MARKER,
-  SPECIFICATOR_PATH,
+  MCP_AGENT_PATHS,
 } from '../constants.js';
 import {
   copyTree,
@@ -65,32 +65,36 @@ function checkGitignore(root, reporter) {
 }
 
 /**
- * Keeps the specificator's allowlist in step with the servers that actually
- * exist. Same rule as .mcp.json: rewrite only what we wrote and nobody edited.
+ * Keeps the allowlist of every agent that talks to MCP in step with the servers
+ * that actually exist. Same rule as everywhere else: rewrite only what we wrote
+ * and nobody edited.
  */
 export function applyToolsLine(root, mapping, { dryRun, reporter }, manifest) {
-  const file = path.join(root, SPECIFICATOR_PATH);
-  const stat = statOrNull(file);
-  if (!stat) return;
-
-  const raw = fs.readFileSync(file, 'utf8');
   const line = toolsLine(mapping);
-  const updated = raw.replace(/^tools:.*$/m, line);
+  const recorded = readManifest(root)?.entries ?? [];
 
-  if (updated === raw) return;
+  for (const agent of MCP_AGENT_PATHS) {
+    const file = path.join(root, agent);
+    const stat = statOrNull(file);
+    if (!stat?.isFile()) continue;
 
-  const knownHash = readManifest(root)?.entries.find((e) => e.path === SPECIFICATOR_PATH)?.hash;
-  if (knownHash && hash(raw) !== knownHash) {
-    reporter.warn(
-      `${SPECIFICATOR_PATH} was edited by hand — left untouched`,
-      `set its allowlist yourself:  ${line}`,
-    );
-    return;
+    const raw = fs.readFileSync(file, 'utf8');
+    const updated = raw.replace(/^tools:.*$/m, line);
+    if (updated === raw) continue;
+
+    const knownHash = recorded.find((e) => e.path === agent)?.hash;
+    if (knownHash && hash(raw) !== knownHash) {
+      reporter.warn(
+        `${agent} was edited by hand — left untouched`,
+        `set its allowlist yourself:  ${line}`,
+      );
+      continue;
+    }
+
+    if (!dryRun) fs.writeFileSync(file, updated);
+    manifest.addFile(file, updated);
+    reporter.updated(`${agent}: tools`);
   }
-
-  if (!dryRun) fs.writeFileSync(file, updated);
-  manifest.addFile(file, updated);
-  reporter.updated(`${SPECIFICATOR_PATH}: tools`);
 }
 
 function scaffold(root, opts, manifest, language, mapping, roles, seen) {
@@ -329,7 +333,7 @@ export async function init({ cwd = process.cwd(), dryRun = false, force = false,
   if (created > 0 && !dryRun) {
     reporter.info('next:');
     console.log(`    ${dim('1.')} describe the project in AGENTS.md — Overview, Commands, Conventions`);
-    console.log(`    ${dim('2.')} ${cyan('npx agentic-flow config')} — re-scan once your MCP servers are connected`);
+    console.log(`    ${dim('2.')} ${cyan('npx @rudevich/agentic-flow config')} — re-scan once your MCP servers are connected`);
     console.log(`    ${dim('3.')} ${cyan('/spec <ticket-url>')} — specify your first task`);
   } else if ((updated > 0 || removed > 0) && !dryRun) {
     // An upgrade creates nothing. The new files still do nothing until the

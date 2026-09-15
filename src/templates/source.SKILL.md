@@ -1,6 +1,6 @@
 ---
 name: {{NAME}}
-description: Read a {{TITLE}} page into agentic/tasks/<KEY>/{{WRITES}} and report the links it contains. Use when the spec skill sends a {{ROLE}} link here, or when asked to save a copy of one.
+description: Read a {{TITLE}} page into agentic/tasks/<KEY>/{{WRITES}}/ and report its facts and the links it contains. Use when a reader agent is sent a {{ROLE}} link, or when asked to save a copy of one.
 ---
 
 # Read {{TITLE}}
@@ -8,8 +8,8 @@ description: Read a {{TITLE}} page into agentic/tasks/<KEY>/{{WRITES}} and repor
 You are given one {{TITLE}} URL. You copy what it says into a file. You report
 the links you found. You do nothing else.
 
-The `spec` skill gives you a link it found in the ticket, or in a page it had
-already read. Never look for a page yourself.
+A `reader` agent runs you with one link that was found in the ticket, or in a
+page that had already been read. Never look for a page yourself.
 
 ## Which URLs are yours
 
@@ -33,7 +33,10 @@ page, and a login page looks like a page with nothing in it.
 
 ## What to write
 
-Write one file: `{{WRITES}}`. Copy the shape below.
+Write one file: `{{WRITES}}/<slug>.md`. The slug is the page title in lowercase
+with dashes. One page is one file, so two pages never land on top of each other.
+
+Copy the shape below.
 
 ```markdown
 # {{TITLE}} — <page title>
@@ -50,19 +53,26 @@ Use the current date and time. Do not copy the example.
 Replace every `<…>` with a real value. No angle brackets may remain in what you
 write.
 
-If you were given more than one link of this kind, put one section per page in
-this same file. Each section gets its own `**Source:**` line.
-
 ## What to report back
 
-Answer `spec` in exactly this shape, and nothing else:
+Answer in exactly this shape, and nothing else:
 
 ```
-written: agentic/tasks/PROJ-123/{{WRITES}}
+source: {{NAME}}
+url: <the url you were given>
+written: agentic/tasks/PROJ-123/{{WRITES}}/<slug>.md
+facts:
+- <anchor> <what the page says there>
+- <anchor> <what the page says there>
 links:
 - <url> -> <the name of the skill that reads it>
 - <url> -> not recognised, not opened
 ```
+
+`facts` is at most 25 lines, one line each, the anchor first. The anchor is
+whatever a requirement will cite later: a section number, a screen name, a field
+name. Copy numbers exactly. A line with no anchor is not a fact, so leave it in
+the snapshot only.
 
 <!-- TODO: answer one question here.
      Which links found on this page should be opened by another source skill?
@@ -84,6 +94,8 @@ Two cases, and both end the same way:
 Write no file. Answer in this shape:
 
 ```
+source: {{NAME}}
+url: <the url you were given>
 written: none
 reason: no MCP server for the {{ROLE}} role
 ```

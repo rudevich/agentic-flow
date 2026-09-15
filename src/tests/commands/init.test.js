@@ -26,6 +26,7 @@ describe('init', () => {
       assert.ok(fs.existsSync(path.join(root, 'agentic', 'skills', skill, 'SKILL.md')), skill);
     }
     assert.ok(fs.existsSync(path.join(root, 'agentic', 'agents', 'specificator.md')));
+    assert.ok(fs.existsSync(path.join(root, 'agentic', 'agents', 'reader.md')));
     assert.ok(fs.existsSync(path.join(root, 'agentic', 'agents', 'planner.md')));
   });
 
@@ -84,7 +85,7 @@ describe('init', () => {
     const { output } = await run(root);
 
     assert.match(output, /describe the project in AGENTS\.md/);
-    assert.match(output, /npx agentic-flow config/);
+    assert.match(output, /npx @rudevich\/agentic-flow config/);
     assert.match(output, /\/spec <ticket-url>/);
   });
 
@@ -295,32 +296,62 @@ describe('init and detected MCP servers', () => {
     await run(root);
 
     assert.match(read(root, 'AGENTS.md'), /\| research \| `notion` \|/);
-    assert.match(read(root, 'agentic', 'agents', 'specificator.md'), /^tools:.*mcp__notion/m);
+    assert.match(read(root, 'agentic', 'agents', 'reader.md'), /^tools:.*mcp__notion/m);
   });
 
-  it("puts the detected servers into the specificator's allowlist", async () => {
+  it("puts the detected servers into the reader's allowlist", async () => {
     const root = withServers({ jira: { url: 'x' }, figma: { url: 'y' } });
     await run(root);
 
-    const tools = read(root, 'agentic', 'agents', 'specificator.md').match(/^tools:.*$/m)[0];
+    const tools = read(root, 'agentic', 'agents', 'reader.md').match(/^tools:.*$/m)[0];
     assert.ok(tools.includes('mcp__jira'));
     assert.ok(tools.includes('mcp__figma'));
     assert.doesNotMatch(tools, /\bEdit\b|\bBash\b/);
+  });
+
+  // The reader is the only agent that fetches, so it is the only one that gets a
+  // server. A specificator with MCP tools could quietly go and read a page.
+  it('leaves every other agent without a server', async () => {
+    const root = withServers({ jira: { url: 'x' }, figma: { url: 'y' } });
+    await run(root);
+
+    for (const agent of ['specificator.md', 'planner.md']) {
+      const tools = read(root, 'agentic', 'agents', agent).match(/^tools:.*$/m)[0];
+      assert.doesNotMatch(tools, /mcp__/, agent);
+    }
   });
 
   it('leaves the allowlist bare when nothing is connected', async () => {
     const root = tmpProject();
     await run(root);
 
-    const tools = read(root, 'agentic', 'agents', 'specificator.md').match(/^tools:.*$/m)[0];
+    const tools = read(root, 'agentic', 'agents', 'reader.md').match(/^tools:.*$/m)[0];
     assert.equal(tools, 'tools: Read, Grep, Glob, Write');
+  });
+
+  // Same rule as every other generated file: ours to rewrite only while it is
+  // still byte for byte what we wrote.
+  it('leaves a reader you edited alone, and says what to set yourself', async () => {
+    const root = tmpProject();
+    await run(root);
+    const reader = path.join(root, 'agentic', 'agents', 'reader.md');
+    fs.writeFileSync(reader, `${fs.readFileSync(reader, 'utf8')}\n\nmy own note\n`);
+    writeJson(path.join(root, '.mcp.json'), { mcpServers: { jira: { url: 'x' } } });
+
+    const { value, output } = await run(root);
+
+    assert.ok(value.warnings >= 1);
+    assert.match(output, /reader\.md was edited by hand/);
+    assert.match(output, /set its allowlist yourself/);
+    assert.match(read(root, 'agentic', 'agents', 'reader.md'), /my own note/);
+    assert.doesNotMatch(read(root, 'agentic', 'agents', 'reader.md'), /mcp__jira/);
   });
 
   it('ignores servers that fill none of the roles', async () => {
     const root = withServers({ postgres: { url: 'x' } });
     await run(root);
 
-    const tools = read(root, 'agentic', 'agents', 'specificator.md').match(/^tools:.*$/m)[0];
+    const tools = read(root, 'agentic', 'agents', 'reader.md').match(/^tools:.*$/m)[0];
     assert.doesNotMatch(tools, /postgres/);
   });
 });

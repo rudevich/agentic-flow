@@ -34,7 +34,7 @@ const HELP = `
   source add <name>
     --role       the role it fills, any name you like   (default docs)
     --matches    URL fragments that identify it, comma-separated
-    --writes     the file it snapshots into             (default sources/<name>.md)
+    --writes     the directory it snapshots into        (default sources/<name>)
     --server     its MCP server name                    (default <name>)
     --auth       token | none                           (default token)
     --links      follow | stop — whether its links lead on to other sources

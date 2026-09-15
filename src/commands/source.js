@@ -24,7 +24,7 @@ async function complete(name, given, reporter) {
   const fields = {
     role: given.role,
     matches: given.matches,
-    writes: given.writes ?? `sources/${name}.md`,
+    writes: given.writes ?? `sources/${name}`,
     server: given.server ?? name,
     auth: given.auth,
     links: given.links ?? 'follow',
@@ -50,7 +50,7 @@ async function complete(name, given, reporter) {
     while (!fields.matches) {
       fields.matches = (await prompt.ask('  URL fragments that identify it, comma-separated:')).trim();
     }
-    fields.writes = (await prompt.ask(`  snapshot file [${fields.writes}]:`)).trim() || fields.writes;
+    fields.writes = (await prompt.ask(`  snapshot directory [${fields.writes}]:`)).trim() || fields.writes;
     fields.server = (await prompt.ask(`  MCP server name [${fields.server}]:`)).trim() || fields.server;
     fields.auth ??= (await prompt.ask('  does its MCP server need an API token? [Y/n]')).trim().toLowerCase() === 'n' ? 'none' : 'token';
   } finally {

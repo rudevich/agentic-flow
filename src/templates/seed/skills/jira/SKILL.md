@@ -1,6 +1,6 @@
 ---
 name: jira
-description: Read a Jira ticket into agentic/tasks/<KEY>/sources/ticket.md and report the Confluence and Figma links it contains. Use when the spec skill sends a tracker link here, or when asked to save a copy of a ticket.
+description: Read a Jira ticket into agentic/tasks/<KEY>/sources/ticket/ and report its facts and the links it contains. Use when a reader agent is sent a tracker link, or when asked to save a copy of a ticket.
 ---
 
 # Read a ticket
@@ -8,8 +8,9 @@ description: Read a Jira ticket into agentic/tasks/<KEY>/sources/ticket.md and r
 You are given one ticket URL. You copy what the ticket says into a file. You
 report the links you found in it. You do nothing else.
 
-The `spec` skill calls you first, because every specification starts from a
-ticket.
+A `reader` agent runs you, one run per link, so the ticket never reaches the
+context of whoever asked for the specification. Every specification starts from a
+ticket, so you are always the first one run.
 
 ## Which URLs are yours
 
@@ -43,7 +44,8 @@ Skip comments that decide nothing, such as "looks good to me".
 
 ## What to write
 
-Write one file: `sources/ticket.md`. Copy the shape below.
+Write one file: `sources/ticket/<KEY>.md`, for example
+`sources/ticket/PROJ-123.md`. Copy the shape below.
 
 ```markdown
 # PROJ-123 — <ticket summary>
@@ -73,15 +75,26 @@ write.
 
 ## What to report back
 
-Answer `spec` in exactly this shape, and nothing else:
+Answer in exactly this shape, and nothing else:
 
 ```
-written: agentic/tasks/PROJ-123/sources/ticket.md
+source: jira
+url: https://co.atlassian.net/browse/PROJ-123
+written: agentic/tasks/PROJ-123/sources/ticket/PROJ-123.md
+facts:
+- summary: checkout keeps a cart for 30 days
+- status: In progress
+- decision (Ann, comment): guest checkout is postponed
 links:
 - https://co.atlassian.net/wiki/spaces/PROD/pages/12345 -> confluence
 - https://www.figma.com/design/abc123/Checkout -> figma
 - https://dashboard.internal/metrics -> not recognised, not opened
 ```
+
+`facts` is at most 25 lines, one line each, the anchor first. The anchor is the
+field name, or `decision (<author>, comment)`. Copy numbers exactly. Do not turn
+a fact into a requirement: that is the specificator's job. Everything you leave
+out stays in the snapshot.
 
 How to fill the `links` list:
 
@@ -107,6 +120,8 @@ Two cases, and both end the same way:
 Write no file. Answer in this shape:
 
 ```
+source: jira
+url: https://co.atlassian.net/browse/PROJ-123
 written: none
 reason: no MCP server for the tracker role
 ```
@@ -122,7 +137,7 @@ What `spec` routes by and what `agentic-flow` wires up. Keep it accurate.
 | --- | --- |
 | role | tracker |
 | matches | /browse/, selectedIssue= |
-| writes | sources/ticket.md |
+| writes | sources/ticket |
 | server | jira, atlassian |
 | auth | token |
 | links | follow |

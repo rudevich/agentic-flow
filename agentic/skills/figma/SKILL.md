@@ -1,6 +1,6 @@
 ---
 name: figma
-description: Write down what a Figma design actually shows into agentic/tasks/<KEY>/sources/design.md. Use when the spec skill sends a design link here, or when asked to list the screens of a design for a ticket.
+description: Write down what a Figma design actually shows into agentic/tasks/<KEY>/sources/design/ and report its screens. Use when a reader agent is sent a design link, or when asked to list the screens of a design for a ticket.
 ---
 
 # Read a design
@@ -8,8 +8,8 @@ description: Write down what a Figma design actually shows into agentic/tasks/<K
 You are given one Figma URL. You write down what the file shows. You do nothing
 else.
 
-The `spec` skill gives you a link it found in the ticket or in the analytics
-document. Never look for a design yourself.
+A `reader` agent runs you with one link that was found in the ticket or in the
+analytics document. Never look for a design yourself.
 
 ## Which URLs are yours
 
@@ -47,7 +47,11 @@ shows no empty cart and no error. So "empty cart" and "error" go under
 
 ## What to write
 
-Write one file: `sources/design.md`. Copy the shape below.
+Write one file: `sources/design/<slug>.md`. The slug is the file name in
+lowercase with dashes, for example `sources/design/checkout.md`. One design file
+is one snapshot, so two designs never land on top of each other.
+
+Copy the shape below.
 
 ```markdown
 # Design — <file name>
@@ -75,17 +79,24 @@ Use the current date and time. Do not copy the example.
 Replace every `<…>` with a real value. No angle brackets may remain in what you
 write.
 
-If you were given more than one design link, put one section per file here. Each
-section gets its own `**Source:**` line.
-
 ## What to report back
 
-Answer `spec` in exactly this shape, and nothing else:
+Answer in exactly this shape, and nothing else:
 
 ```
-written: agentic/tasks/PROJ-123/sources/design.md
+source: figma
+url: https://www.figma.com/design/abc123/Checkout?node-id=12-34
+written: agentic/tasks/PROJ-123/sources/design/checkout.md
+facts:
+- Cart: states present are default and one item
+- Cart: the button says "Checkout"
+- not in the file: empty state, error state
 links: none
 ```
+
+`facts` is at most 25 lines, one line each, the screen name first. Say which
+states a screen has, and add one `not in the file` line for the states nobody
+drew. Do not turn a fact into a requirement: that is the specificator's job.
 
 `links` is always `none`. Links inside a design file are not followed. The chain
 of sources ends with you.
@@ -100,6 +111,8 @@ Two cases, and both end the same way:
 Write no file. Answer in this shape:
 
 ```
+source: figma
+url: https://www.figma.com/design/abc123/Checkout
 written: none
 reason: no MCP server for the design role
 ```
@@ -115,7 +128,7 @@ What `spec` routes by and what `agentic-flow` wires up. Keep it accurate.
 | --- | --- |
 | role | design |
 | matches | figma.com |
-| writes | sources/design.md |
+| writes | sources/design |
 | server | figma |
 | auth | none |
 | links | stop |
