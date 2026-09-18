@@ -23,10 +23,10 @@ subagent, which has no `Edit` and no `Bash`, so it cannot change code.
 agentic/tasks/<KEY>/
 ├── requirements.md     written by the specificator
 ├── subtasks.md         NOT yours. The plan skill writes it later.
+├── design/             NOT yours. The design skill writes it later.
 └── sources/
     ├── ticket/         one file per ticket, written by a reader
-    ├── analytics/      one file per page, written by a reader
-    └── design/         one file per design, written by a reader
+    └── analytics/      one file per page, written by a reader
 ```
 
 Write nothing outside `agentic/tasks/<KEY>/`.
@@ -48,6 +48,7 @@ Each reader answers in the same shape:
 ```
 source: confluence
 url: https://co.atlassian.net/wiki/spaces/PROD/pages/12345
+strategy: inline
 written: agentic/tasks/PROJ-123/sources/analytics/checkout-flow.md
 facts:
 - §2.1 a cart keeps its items for 30 days
@@ -64,9 +65,26 @@ written: none
 reason: no MCP server for the docs role
 ```
 
-Keep every digest. `links` feeds step 5, `written` feeds step 6, and `facts` is
-what the requirements are written from. If a reader answers in some other shape,
-use what you can read and never invent the rest.
+or, when the page was too big for one read and some of it stayed unread:
+
+```
+source: confluence
+url: https://co.atlassian.net/wiki/spaces/PROD/pages/12345
+strategy: parts
+written: agentic/tasks/PROJ-123/sources/analytics/checkout-flow.md
+parts: 8
+unread: lines 1201–1350
+facts:
+- §2.1 a cart keeps its items for 30 days
+links: none
+```
+
+Keep every digest. `links` feeds step 5, `written` and `unread` feed step 6, and
+`facts` is what the requirements are written from.
+
+**An answer with no `written:` line is a failed read.** Treat it as
+`written: none` with the reason `the reader did not finish`. That covers an
+error, an answer cut off halfway, and raw page text. Take no facts from it.
 
 Never ask a reader for the page itself. If you find yourself wanting the whole
 text, you want one exact sentence: open that one snapshot file with `Read`.
@@ -107,6 +125,25 @@ If all three checks pass, continue to step 2.
 | `https://co.atlassian.net/jira?selectedIssue=PROJ-123` | `PROJ-123` |
 | no key anywhere in the URL | the last path segment, as a slug |
 
+### Start the task folder empty
+
+A ticket that was specified before is read again from scratch. Delete these
+three, and nothing else, before step 4:
+
+```
+agentic/tasks/<KEY>/requirements.md
+agentic/tasks/<KEY>/subtasks.md
+agentic/tasks/<KEY>/sources/
+```
+
+Nothing is merged. The pages are read again, and the questions are asked again:
+whatever was answered in the meantime simply stops coming back.
+
+Leave `agentic/tasks/<KEY>/design/` where it is. It belongs to the `design`
+skill, and step 9 says it may be out of date.
+
+Build every path from `<KEY>`, and from nothing else. Delete no other path.
+
 ## Step 3. Build the routing table
 
 Do not assume the project has three sources. Read them.
@@ -124,9 +161,10 @@ Each `## Source` section is a small table. Use it like this:
 | `matches` | text fragments. A URL containing one of them goes to this skill. |
 | `writes` | the directory under `sources/` where its snapshots go, one file per page. |
 | `links` | `follow` means route the links it finds. `stop` means do not. |
+| `fetch` | `yes` means send a reader to its links. `no` means only list them, see step 5. |
 
 A project starts with three sources: `jira` (role `tracker`), `confluence`
-(role `docs`), `figma` (role `design`). More can be added later. Your routing
+(role `docs`), `figma` (role `design`, `fetch: no`). More can be added later. Your routing
 table is whatever you found in step 3, not this list.
 
 ## Step 4. Read the ticket
@@ -136,7 +174,7 @@ Find the source whose `role` is `tracker`. That is your entry point.
 Send one reader: the ticket URL, that skill's name, the task folder. It writes
 the snapshot and answers with the ticket's facts and the links in it.
 
-If the reader answers `written: none`: stop. Say what it reported. Write no
+If the reader answers `written: none`, or with no `written:` line at all: stop. Say what it reported. Write no
 `requirements.md`. You cannot specify a ticket nobody could read, and you must
 never guess what a ticket says from its key.
 
@@ -148,15 +186,19 @@ Take the links the ticket gave you. For each one, in order:
    - No → do not open it. Add it to `Open questions` as an unrecognised link.
 2. Was that source excluded by a `--no-` flag?
    - Yes → skip it. Remember the flag for the `Sources` table.
-3. Have you already read this exact URL?
+3. Have you already read or listed this exact URL?
    - Yes → skip it.
-4. Would this be the sixth link for that source in this round?
+4. Does that source say `fetch: no`?
+   - Yes → do not open it. Remember the link, with the page it was found in. It
+     goes into `requirements.md`, see step 8. The five-link limit does not apply
+     to a link nobody opens.
+5. Would this be the sixth link for that source in this round?
    - Yes → skip it. Remember it for the `Sources` table and for
      `Missing in sources`.
-5. Otherwise → it gets a reader.
+6. Otherwise → it gets a reader.
 
 Send every reader that survived those checks in one batch. Then take the links
-those readers gave you and repeat the same five checks once, as a second batch.
+those readers gave you and repeat the same six checks once, as a second batch.
 
 Then stop following links. Two rounds away from the ticket is the limit:
 ticket → analytics → design. A source whose declaration says `links: stop` gives
@@ -175,13 +217,20 @@ files, two rows in `Sources`.
 ### Hand over when the reading is done
 
 You now hold one digest per page and no pages. Send them all to the
-`specificator` agent, with the task folder and the flags that were used:
+`specificator` agent, with the task folder, the flags that were used and the
+links nobody opened:
 
 ```
 Write agentic/tasks/PROJ-123/requirements.md from these digests.
-Flags: --no-figma
+Flags: none
+Design links:
+- https://www.figma.com/design/abc123/Checkout?node-id=12-34 — ticket
+- https://www.figma.com/file/xyz789/Cart — analytics: checkout-flow
 <every digest, word for word>
 ```
+
+Write `Design links: none` when the ticket linked no design. Never open one of
+them yourself, and never describe what it shows.
 
 The specificator follows steps 6 to 9 and writes the file. Everything below this
 line is written for it.
@@ -195,12 +244,20 @@ table. Every source is in exactly one of these states. Write the matching row:
 | --- | --- |
 | read | `\| Design \| <url> \| <date and time> \|` |
 | excluded by a flag | `\| Design \| skipped (--no-figma) \| — \|` |
+| the source says `fetch: no` | `\| Design \| links only — see Design \| — \|` |
 | the reader answered `written: none` | `\| Design \| unavailable — <reason> \| — \|` |
+| the digest has `unread:` with lines, not `none` | `\| Analytics \| <url> — partial, lines 1201–1350 not read \| <date and time> \|` |
 | over the five-link limit | `\| Analytics \| 7 more not read (over the limit) \| — \|` |
 | no link to it anywhere | `\| Design \| no link in the ticket or the analytics doc \| — \|` |
 
 One row per page that was read, not one row per source: two Confluence pages are
 two rows.
+
+A partial page also gets a line under `Missing in sources`. Nobody knows what its
+unread lines say.
+
+A `links only` source gets one too. Nobody opened its pages, so what they show is
+unknown. Write no requirement from a listed link.
 
 Only the ticket is fatal. If any other source is missing, keep going and write
 `requirements.md`. Everything that source would have told you goes under
@@ -279,7 +336,13 @@ describe it, not the way the system works.
 ## Requirements
 
 - **R1** … — `analytics §2.1`
-- **R2** … — `design: Checkout / Empty`
+- **R2** … — `ticket: description`
+
+## Design
+
+| Link | Found in |
+| --- | --- |
+| https://www.figma.com/design/abc123/Checkout | ticket |
 
 ## Out of scope
 
@@ -336,6 +399,9 @@ Write the file in the language set by the document language rule in `AGENTS.md`.
 - **N5 — `Open questions` is not empty.** A real ticket almost always leaves
   something unanswered. If your list is empty, you probably answered something
   yourself. Go back through the requirements and find the guesses.
+- **N6 — a design link is not a source.** Nobody opened what is under `## Design`.
+  Write `none` there when the ticket linked no design, cite no link in a
+  requirement, and leave the reading to `/design <KEY>`.
 
 ### Work assignments
 
@@ -357,6 +423,9 @@ Show the user:
 2. the `Open questions` section, word for word;
 3. the `Missing in sources` section, word for word.
 
+If `design/` already holds designs, say they were read before this run and may be
+out of date. `/design <KEY>` reads them again.
+
 A human reads the specification and accepts it. Breaking it into subtasks is the
 `plan` skill, and it runs later.
 
@@ -371,7 +440,12 @@ Check each line. All of them must be true.
 - [ ] Every date you wrote is the real date, not `2026-09-13 14:20` (step 8).
 - [ ] Every requirement has a source in backticks after it (N1).
 - [ ] `Sources` has one row per source in your routing table (step 6).
+- [ ] Every page with unread lines is marked partial in `Sources` and named under
+      `Missing in sources` (step 6).
 - [ ] Every URL you opened came from a page you had already read (step 5).
+- [ ] A ticket specified before was emptied before the reading started (step 2).
+- [ ] Every design link found is under `## Design`, and none of them was opened
+      (N6).
 - [ ] `requirements.md` contains no file names, function names or library names
       (N4).
 - [ ] `Open questions` is not empty (N5).

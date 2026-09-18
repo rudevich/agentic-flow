@@ -1,0 +1,15 @@
+{
+  // What ships: bin/ and src/ compiled into dist/, tests left out. The templates
+  // are not code and ship from src/templates as they are.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
+    "rootDir": ".",
+    "outDir": "dist",
+    "sourceMap": false,
+    "declaration": false
+  },
+  "include": ["bin/**/*.ts", "src/**/*.ts"],
+  "exclude": ["src/tests/**"]
+}

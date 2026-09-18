@@ -6,10 +6,12 @@ One directory per ticket, everything committed.
 tasks/<KEY>/
 ├── requirements.md   # written by the specificator, accepted by a human
 ├── subtasks.md       # written by the planner, after that acceptance
+├── design/           # written by /design, one file per Figma link
 └── sources/          # one file per page, written by the readers
     ├── ticket/PROJ-123.md
     ├── analytics/checkout-flow.md
-    └── design/checkout.md
+    ├── analytics/pricing.md          # a page too big for one read: an index
+    └── analytics/pricing.part-1.md   # … and its parts
 ```
 
 `<KEY>` comes from the ticket URL. `…/browse/PROJ-123` gives `PROJ-123`.
@@ -57,6 +59,49 @@ Five links per source per round is the limit. Anything past it is listed in
 `Sources` as `not read (over the limit)`, and named under `Missing in sources`.
 A link farm then produces a short specification instead of an exhausted run.
 
+## A page too big for one reader
+
+`agentic/settings.json` sets `MAX_MCP_OUTPUT_TOKENS`. An MCP answer above it is
+saved to a file, and the reader gets the file's path instead of the page. How the
+answer arrives tells the reader how big the page is, so no second request is
+needed.
+
+| The answer | Strategy |
+| --- | --- |
+| the page itself | `inline` |
+| a saved file that fits one part | `whole file`: the reader reads it itself |
+| a saved file of two parts or more | `parts`: one `part-reader` per part |
+
+A part is about 12 KB or 150 lines, and at most eight parts are read. Each part
+becomes its own `<slug>.part-N.md`, and `<slug>.md` becomes an index of them.
+Lines past the eighth part are listed as `partial` in `Sources` and named under
+`Missing in sources`.
+
+## Designs have their own command
+
+The `figma` skill ships with `fetch | no` in its `## Source` table, so `/spec`
+opens no design. It lists every Figma link it finds under `## Design` in
+`requirements.md`, with the page it was found in, and `Sources` says
+`links only`.
+
+```
+/design PROJ-123
+    → design/checkout.md, one file per link
+```
+
+`/design` reads those links whenever you want them, before or after the
+specification is accepted. How a design is read is still provisional.
+
+## Running /spec again
+
+`/spec` on a ticket that already has a specification reads everything from
+scratch. It first deletes `requirements.md`, `subtasks.md` and `sources/`, so an
+answer that arrived in Confluence in the meantime simply stops coming back as a
+question. Nothing is merged, and `design/` is left alone.
+
+Commit the task folder before re-running, and `git diff` then shows what the
+answers changed. Re-run `/plan` afterwards: its `subtasks.md` went with the rest.
+
 ## Why snapshot the sources
 
 The analytics doc and the design keep moving. Without a copy taken at
@@ -66,8 +111,8 @@ did. Each snapshot carries its URL and the time it was fetched.
 A source that was never read leaves a row rather than a silence. The `Sources`
 table in `requirements.md` gives the reason. It is one of
 `skipped (--no-figma)`, `unavailable — no design server`,
-`not read (over the limit)`, or "no link in the ticket". What that source would
-have answered is listed under `Missing in sources`. Requirements are never filled
+`not read (over the limit)`, or "no link in the ticket". A page read only in part says
+`partial` and names the lines nobody read. What that source would have answered is listed under `Missing in sources`. Requirements are never filled
 in from the sources that did load.
 
 Every file also carries the full ticket URL near the top, so a file opened on its

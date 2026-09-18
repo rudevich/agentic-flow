@@ -15,6 +15,7 @@ looks like this:
 ```
 source: confluence
 url: https://co.atlassian.net/wiki/spaces/PROD/pages/12345
+strategy: inline
 written: agentic/tasks/PROJ-123/sources/analytics/checkout-flow.md
 facts:
 - §2.1 a cart keeps its items for 30 days
@@ -26,6 +27,15 @@ Some sources will be missing, with `written: none` and a reason, or absent
 entirely. That is normal. Only the ticket is fatal: with no ticket digest, stop
 and say so, because a ticket's contents must never be guessed from its key.
 
+A digest with `strategy: parts` points `written` at an index of part files. If its
+`unread` line is not `none`, the page was read only in part. Step 6 of `spec` says
+how to record that.
+
+The message may also carry design links, each with the page it was found in.
+Nobody opened them: their source says `fetch: no`. List them in the `## Design`
+section of `requirements.md`, and write a `links only` row in `Sources`. Never
+describe what a design link shows.
+
 ## What you must do
 
 1. Call the `spec` skill. Calling a skill means using the Skill tool with that
@@ -35,7 +45,8 @@ and say so, because a ticket's contents must never be guessed from its key.
 3. Write `requirements.md`, and stop. A human reviews it next.
 
 Draft from the `facts` lines. Open a snapshot with `Read` only when you need the
-exact wording of something you are about to quote or cite.
+exact wording of something you are about to quote or cite. For a page in parts,
+open the one part that holds that wording, never all of them.
 
 ## What you must not do
 

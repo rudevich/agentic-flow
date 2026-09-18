@@ -39,20 +39,22 @@ roles table from it:
 | --- | --- |
 | role | docs |
 | matches | notion.so, notion.site |
-| writes | sources/analytics.md |
+| writes | sources/analytics |
 | server | notion |
 | auth | token |
 | links | follow |
+| fetch | yes |
 ```
 
 | Field | What to put in it |
 | --- | --- |
 | `role` | any name you like. The `MCP roles` table in `AGENTS.md` grows to fit. |
 | `matches` | URL fragments. No regular expressions, case-insensitive. |
-| `writes` | the directory under `sources/` its snapshots go in, one file per page. |
+| `writes` | the directory its snapshots go in, under the task folder, one file per page. Usually under `sources/`. |
 | `server` | MCP server names that can fill the role. A list, so one `atlassian` server can serve two skills. |
 | `auth` | `token` if its server needs one, `none` if it connects some other way. Say how in the skill itself. |
 | `links` | `follow` if what it reads leads on to other sources, `stop` if the chain ends there. |
+| `fetch` | `yes` to send a reader to its links. `no` to only list them in `requirements.md`: no reader, no server, no tools for it during `spec`. The `figma` skill ships with `no`, and `/design` reads those links later. |
 
 Nothing here handles the token itself. The `auth` field only shapes the
 instructions printed when the role is empty.

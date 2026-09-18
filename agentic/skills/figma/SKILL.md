@@ -1,6 +1,6 @@
 ---
 name: figma
-description: Write down what a Figma design actually shows into agentic/tasks/<KEY>/sources/design/ and report its screens. Use when a reader agent is sent a design link, or when asked to list the screens of a design for a ticket.
+description: Write down what a Figma design actually shows into agentic/tasks/<KEY>/design/ and report its screens. Off by default in spec — its Source table says fetch no, and the design skill reads the links later. Use when a reader or the designer agent is sent a design link, or when asked what a design shows.
 ---
 
 # Read a design
@@ -8,8 +8,14 @@ description: Write down what a Figma design actually shows into agentic/tasks/<K
 You are given one Figma URL. You write down what the file shows. You do nothing
 else.
 
-A `reader` agent runs you with one link that was found in the ticket or in the
-analytics document. Never look for a design yourself.
+A `reader` or the `designer` agent runs you with one link that was found in the
+ticket or in the analytics document. Never look for a design yourself.
+
+**Off by default in `spec`.** The `## Source` table below says `fetch | no`.
+While it does, `spec` opens no design: it lists the link in the `## Design`
+section of `requirements.md`, and `/design <KEY>` reads it later. To read designs
+during `spec` instead, change the row to `fetch | yes` and run
+`agentic-flow config`.
 
 ## Which URLs are yours
 
@@ -20,6 +26,16 @@ A design URL has the host `figma.com`. The path usually contains `/file/`,
 
 Your role is `design`. Open `AGENTS.md`, find the `MCP roles` table, and read the
 server name on the `design` row. Use that server's tools.
+
+Ask for as little as the tool allows. If the link has a `node-id`, read only that
+node. Without one, ask for the structure of the file first, then read one screen
+per call.
+
+Never ask for a screenshot or an image. An image lands whole in your context,
+however big it is.
+
+If the tool says its answer was saved to a file, do not `Read` that file whole.
+Your agent's instructions say how to read a saved answer.
 
 Figma does not use an API token like the other sources. It connects in one of two
 ways:
@@ -47,8 +63,8 @@ shows no empty cart and no error. So "empty cart" and "error" go under
 
 ## What to write
 
-Write one file: `sources/design/<slug>.md`. The slug is the file name in
-lowercase with dashes, for example `sources/design/checkout.md`. One design file
+Write one file: `design/<slug>.md`, inside the task folder. The slug is the file
+name in lowercase with dashes, for example `design/checkout.md`. One design file
 is one snapshot, so two designs never land on top of each other.
 
 Copy the shape below.
@@ -86,7 +102,7 @@ Answer in exactly this shape, and nothing else:
 ```
 source: figma
 url: https://www.figma.com/design/abc123/Checkout?node-id=12-34
-written: agentic/tasks/PROJ-123/sources/design/checkout.md
+written: agentic/tasks/PROJ-123/design/checkout.md
 facts:
 - Cart: states present are default and one item
 - Cart: the button says "Checkout"
@@ -128,7 +144,8 @@ What `spec` routes by and what `agentic-flow` wires up. Keep it accurate.
 | --- | --- |
 | role | design |
 | matches | figma.com |
-| writes | sources/design |
+| writes | design |
 | server | figma |
 | auth | none |
 | links | stop |
+| fetch | no |

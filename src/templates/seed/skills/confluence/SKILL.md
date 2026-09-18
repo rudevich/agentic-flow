@@ -20,6 +20,12 @@ A Confluence URL contains `/wiki/`, `/spaces/` or `/pages/`.
 Your role is `docs`. Open `AGENTS.md`, find the `MCP roles` table, and read the
 server name on the `docs` row. Use that server's tools.
 
+Ask for as little as the tool allows. If it lets you choose a format, choose
+markdown. Leave out the history, the comments, the attachments and the child pages.
+
+If the tool says its answer was saved to a file, do not `Read` that file whole.
+Your agent's instructions say how to read a saved answer.
+
 Do not use `WebFetch`. The page requires a login. `WebFetch` would return the
 login page, and you would copy an empty document without noticing.
 
@@ -122,3 +128,4 @@ What `spec` routes by and what `agentic-flow` wires up. Keep it accurate.
 | server | confluence, atlassian |
 | auth | token |
 | links | follow |
+| fetch | yes |

@@ -1,0 +1,7 @@
+{
+  // Use the project's TypeScript, not the one bundled with the editor. The
+  // sources import each other with a .ts extension, which a bundled TypeScript
+  // older than 5.0 reports as error TS2691.
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true
+}

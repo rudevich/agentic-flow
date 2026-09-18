@@ -30,9 +30,10 @@ npm i -D git+ssh://git@github.com/rudevich/agentic-flow.git
 project/
 ├── agentic/
 │   ├── skills/   spec, plan, jira, confluence, figma (+ ваши)
-│   ├── agents/   reader, specificator, planner
+│   ├── agents/   reader, part-reader, specificator, planner
 │   ├── hooks/
-│   └── tasks/    одна директория на тикет
+│   ├── tasks/    одна директория на тикет
+│   └── settings.json   порог ответа MCP (MAX_MCP_OUTPUT_TOKENS)
 ├── .claude   -> agentic
 ├── AGENTS.md
 └── CLAUDE.md -> AGENTS.md
@@ -60,7 +61,7 @@ npx @rudevich/agentic-flow init
 Директории, `AGENTS.md`, симлинки — и сразу скан MCP: что нашлось, разложено по
 ролям; чего не нашлось, про то напечатана инструкция.
 
-**Порядок имеет значение.** Связка «сервер → роль → `tools:` спецификатора»
+**Порядок имеет значение.** Связка «сервер → роль → `tools:` ридера»
 собирается в момент запуска, а не на лету.
 
 **Если в проекте уже есть `.claude/`** — а он есть почти везде, где работают с
@@ -172,7 +173,14 @@ npm i -D @rudevich/agentic-flow@latest && npx @rudevich/agentic-flow init
 /plan PROJ-123
 #   → subtasks.md: подзадачи по 2–8 часов, каждая привязана к требованию
 #     и с приоритетом — меньше число раньше, одинаковое можно параллельно
+/design PROJ-123
+#   → design/: макеты по ссылкам из requirements.md, когда они понадобятся
 ```
+
+Повторный `/spec` по тому же тикету перечитывает задачу с нуля: удаляет
+`requirements.md`, `subtasks.md` и `sources/` и читает всё заново. Ничего не
+сливается, поэтому вопрос, на который аналитик ответил правкой в Confluence,
+просто перестаёт задаваться. Папку `design/` он не трогает.
 
 Вызов `/plan` — и есть сигнал, что спецификацию приняли: пока это делает человек.
 Незакрытые `Open questions` не блокируют, но планировщик их покажет и спросит,
@@ -197,6 +205,43 @@ npm i -D @rudevich/agentic-flow@latest && npx @rudevich/agentic-flow init
 `not read (over the limit)` и в `Missing in sources`. Тикет-помойка даёт короткую
 спецификацию, а не захлебнувшийся прогон.
 
+### Большая страница
+
+Одна страница тоже может не влезть в ридера: сырой ответ MCP плюс снимок, который
+ридер сам пишет, — это примерно два размера страницы.
+
+`init` кладёт порог в `agentic/settings.json`:
+
+```json
+{ "env": { "MAX_MCP_OUTPUT_TOKENS": "4000" } }
+```
+
+Ответ MCP больше порога Claude Code не кладёт в контекст: сохраняет в файл и
+отдаёт путь. По тому, как пришёл ответ, ридер и узнаёт вес страницы — второго
+запроса не нужно:
+
+| Что ответил MCP | Стратегия | Что делает ридер |
+| --- | --- | --- |
+| страницу целиком | `inline` | как обычно |
+| «сохранено в файл», одна часть | `whole file` | читает файл сам, одним `Read` с `limit` |
+| «сохранено в файл», частей больше | `parts` | по сабагенту `part-reader` на часть, по 3 за раз |
+
+Часть — ~12 КБ или 150 строк, частей не больше восьми. Каждая пишется в свой
+`<slug>.part-N.md`, а `<slug>.md` становится оглавлением. Что не влезло в восемь
+частей, попадает в `Sources` как `partial` и в `Missing in sources`. В дайджесте
+ридера строка `strategy:` показывает, какой путь он выбрал.
+
+Порог и размер части рассчитаны на окно ~32k. Окно больше — поднимите
+`MAX_MCP_OUTPUT_TOKENS` и числа в `agentic/agents/reader.md` (после правки `init`
+перестанет обновлять этот файл).
+
+Был свой `agentic/settings.json` — `init` его не трогает, а печатает warning со
+строкой, которую нужно добавить.
+
+Не решено: если MCP-сервер отдаёт страницу JSON-ом, где всё тело — одна строка,
+резать по строкам нечего. Такая страница вернётся `written: none` с причиной
+`lines too long to read`. Лечится сервером, который умеет отдавать markdown.
+
 ### Источники — отдельные скиллы
 
 Читает не один монолит: `spec` только маршрутизирует, а каждый вид ссылки знает
@@ -213,15 +258,46 @@ npm i -D @rudevich/agentic-flow@latest && npx @rudevich/agentic-flow init
 открывается — уезжает в `Open questions`.
 
 Непрочитанный источник виден строкой в `Sources`: `skipped (--no-figma)`,
-`unavailable — no design server` или «ссылки не было». Нет сервера для роли —
+`links only`, `unavailable — no docs server` или «ссылки не было». Нет сервера для роли —
 прогон **не падает**: пишется то, что прочиталось, пробел уезжает в `Missing in
 sources`. Падаем только если недоступен трекер — тогда специфицировать нечего.
+
+### Макеты — отдельной командой
+
+В `## Source` скилла `figma` стоит `fetch | no`, поэтому `/spec` макеты не
+открывает. Найденные ссылки он складывает в раздел `## Design` файла
+`requirements.md` — с пометкой, где каждая нашлась. В `Sources` строка
+`links only`, в `Missing in sources` — то, что макет мог бы ответить.
+
+Читает макеты своя команда, когда они понадобятся:
+
+```bash
+/design PROJ-123      # → agentic/tasks/PROJ-123/design/checkout.md
+```
+
+`/design` берёт ссылки из `## Design`, отдаёт их сабагенту `designer`, а тот
+пишет по файлу на макет. Это заготовка: сам способ вычитки ещё будем
+дорабатывать.
+
+У ридера при этом нет инструментов Figma — их схемы не занимают его контекст.
+Инструменты Figma есть только у `designer`. `init` не просит подключать сервер
+для роли `design`, а в таблице ролей стоит `— (links only)`.
+
+Хотите читать макеты прямо в `/spec` — поменяйте поле и пересоберите:
+
+```bash
+# agentic/skills/figma/SKILL.md:   | fetch | no |   →   | fetch | yes |
+npx @rudevich/agentic-flow config
+```
+
+После этой правки скилл считается вашим, и `init` перестанет его обновлять.
+Поле `fetch` есть у любого источника: `no` — ссылки только перечисляются.
 
 ### Свой источник
 
 Список источников не зашит: источник — это скилл с секцией `## Source`. По ней
 `spec` маршрутизирует ссылки, а `agentic-flow` собирает таблицу ролей и allowlist
-спецификатора.
+ридера.
 
 ```bash
 agentic-flow source add notion --role docs --matches notion.so,notion.site
@@ -275,17 +351,19 @@ agentic-flow source add notion --role docs --matches notion.so,notion.site
 Чего не нашлось — про то печатается инструкция:
 
 ```
-[agentic] no MCP server for: design
-[agentic] connect one, then run `agentic-flow config`:
+[agentic] no MCP server for: docs
+[agentic] connect one, then run `npx @rudevich/agentic-flow config`:
 [agentic]   claude mcp add --transport http <name> https://<host>/mcp
 [agentic]   or add it to .mcp.json in this project, or authorise a connector with /mcp
 [agentic] which server names fill which role, from the skills' ## Source blocks:
-[agentic]   design  <- figma   agentic/skills/figma/SKILL.md
-[agentic]           takes no token — that skill says how it connects
+[agentic]   docs  <- confluence, atlassian   agentic/skills/confluence/SKILL.md
 ```
 
+Про источник с `fetch | no` (по умолчанию это `figma`) подсказки нет: его никто
+не читает, и сервер ему не нужен.
+
 Подключили сервер — `agentic-flow config` пересобирает таблицу ролей и `tools:`
-спецификатора. Токены пакет не спрашивает, не хранит и не пишет: где им лежать,
+ридера. Токены пакет не спрашивает, не хранит и не пишет: где им лежать,
 решает ваш MCP-клиент.
 
 ### Роли вместо имён серверов
@@ -293,7 +371,7 @@ agentic-flow source add notion --role docs --matches notion.so,notion.site
 Скиллы называются по сервисам, но инструмент берут по роли: `tracker` (тикет),
 `docs` (аналитика), `design` (макет) плюс всё, что вы завели, — имён серверов
 агенты не знают. Сопоставление живёт в `AGENTS.md` под маркером
-`<!-- agentic:mcp-roles -->`, а строка `tools:` у спецификатора генерируется из
+`<!-- agentic:mcp-roles -->`, а строка `tools:` у ридера генерируется из
 найденных имён. Поэтому одинаково работают и `jira` + `confluence`, и один
 `atlassian` на обе роли, и `plugin:product-management:atlassian`.
 
@@ -302,7 +380,7 @@ agentic-flow source add notion --role docs --matches notion.so,notion.site
 без правок в коде. Поменялось окружение — `agentic-flow config` пересоберёт и
 таблицу ролей, и allowlist.
 
-**Figma токеном не подключается.** Варианты: Dev Mode MCP в десктопном
+**Figma токеном не подключается** (нужна, только если включить `fetch | yes`). Варианты: Dev Mode MCP в десктопном
 приложении Figma или OAuth-коннектор через `/mcp` — об этом и говорит `auth:
 none` в её объявлении. Как только сервер появится, `agentic-flow config`
 подхватит его в роль `design`.

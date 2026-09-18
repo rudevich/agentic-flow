@@ -29,6 +29,12 @@ If the URL has no key anywhere, it is not a ticket. Say so and stop.
 Your role is `tracker`. Open `AGENTS.md`, find the `MCP roles` table, and read
 the server name on the `tracker` row. Use that server's tools.
 
+Ask for as little as the tool allows. If it lets you choose fields, ask only for
+the ones under What to copy. Leave out the change history and the work log.
+
+If the tool says its answer was saved to a file, do not `Read` that file whole.
+Your agent's instructions say how to read a saved answer.
+
 Do not use `WebFetch`. Jira requires a login. `WebFetch` would return the login
 page, and a login page looks like a ticket with nothing in it. You would then
 write an empty specification and not notice.
@@ -141,3 +147,4 @@ What `spec` routes by and what `agentic-flow` wires up. Keep it accurate.
 | server | jira, atlassian |
 | auth | token |
 | links | follow |
+| fetch | yes |

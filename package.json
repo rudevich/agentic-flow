@@ -1,6 +1,6 @@
 {
   "name": "@rudevich/agentic-flow",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Scaffolds an agentic/ directory (skills, agents, hooks, tasks) with .claude and CLAUDE.md symlinks, and seeds a ticket-to-subtasks pipeline",
   "keywords": [
     "claude-code",
@@ -28,20 +28,26 @@
     "node": ">=24"
   },
   "bin": {
-    "agentic-flow": "bin/agentic-flow.js"
+    "agentic-flow": "dist/bin/agentic-flow.js"
   },
   "files": [
-    "bin",
-    "src",
-    "!src/tests",
+    "dist",
+    "src/templates",
     "README.md"
   ],
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc",
     "test": "node --test",
-    "prepublishOnly": "npm test",
-    "postinstall": "node src/commands/postinstall.js"
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run typecheck && npm test",
+    "postinstall": "node -e \"import('./dist/src/commands/postinstall.js').catch(() => {})\""
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.4",
+    "typescript": "~6.0.3"
   }
 }

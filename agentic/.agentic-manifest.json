@@ -1,7 +1,7 @@
 {
   "version": 1,
   "packageVersion": "0.2.2",
-  "writtenAt": "2026-09-15T07:18:37.611Z",
+  "writtenAt": "2026-09-17T18:19:30.164Z",
   "entries": [
     {
       "path": "agentic",
@@ -19,7 +19,7 @@
     {
       "path": "agentic/skills/README.md",
       "type": "file",
-      "hash": "f74923cbf7cfbccb"
+      "hash": "13032cbd145d8a1e"
     },
     {
       "path": "agentic/agents",
@@ -61,7 +61,7 @@
     {
       "path": "agentic/tasks/README.md",
       "type": "file",
-      "hash": "816169bb6025099f"
+      "hash": "9e6ccdf26eb07a6b"
     },
     {
       "path": "agentic/agents/planner.md",
@@ -71,7 +71,7 @@
     {
       "path": "agentic/agents/specificator.md",
       "type": "file",
-      "hash": "97f84e2433030e99"
+      "hash": "c945bb9859023dfa"
     },
     {
       "path": "agentic/skills/confluence",
@@ -80,7 +80,7 @@
     {
       "path": "agentic/skills/confluence/SKILL.md",
       "type": "file",
-      "hash": "cf3d5dadb7337b7d"
+      "hash": "fb58504c079922de"
     },
     {
       "path": "agentic/skills/figma",
@@ -89,7 +89,7 @@
     {
       "path": "agentic/skills/figma/SKILL.md",
       "type": "file",
-      "hash": "0acd6e9d9bfa0636"
+      "hash": "f6ee92080c5e0807"
     },
     {
       "path": "agentic/skills/jira",
@@ -98,7 +98,7 @@
     {
       "path": "agentic/skills/jira/SKILL.md",
       "type": "file",
-      "hash": "33393981569b96eb"
+      "hash": "8e61d1aa20363ebf"
     },
     {
       "path": "agentic/skills/plan",
@@ -116,7 +116,7 @@
     {
       "path": "agentic/skills/spec/SKILL.md",
       "type": "file",
-      "hash": "8fa9f137e8b1a40d"
+      "hash": "8e7e0831794537af"
     },
     {
       "path": ".claude",
@@ -126,7 +126,31 @@
     {
       "path": "agentic/agents/reader.md",
       "type": "file",
-      "hash": "4121f84982202533"
+      "hash": "da22467829eae2e5"
+    },
+    {
+      "path": "agentic/agents/part-reader.md",
+      "type": "file",
+      "hash": "7a206e36612ca0f3"
+    },
+    {
+      "path": "agentic/settings.json",
+      "type": "file",
+      "hash": "9521bd0b91b96fd1"
+    },
+    {
+      "path": "agentic/agents/designer.md",
+      "type": "file",
+      "hash": "2a4bb87c708ab47b"
+    },
+    {
+      "path": "agentic/skills/design",
+      "type": "dir"
+    },
+    {
+      "path": "agentic/skills/design/SKILL.md",
+      "type": "file",
+      "hash": "61ee80fb5f947b40"
     }
   ]
 }

@@ -3,3 +3,4 @@ node_modules/
 rudevich-agentic-flow-*.tgz
 .env.agentic
 ~
+dist/

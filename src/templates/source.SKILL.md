@@ -20,6 +20,12 @@ A URL containing any of: {{MATCHES}}
 Your role is `{{ROLE}}`. Open `AGENTS.md`, find the `MCP roles` table, and read
 the server name on the `{{ROLE}}` row. Use that server's tools.
 
+Ask for as little as the tool allows: only the parts named under What to copy,
+without history, comments or attachments.
+
+If the tool says its answer was saved to a file, do not `Read` that file whole.
+Your agent's instructions say how to read a saved answer.
+
 If the page requires a login, do not use `WebFetch`. It would return the login
 page, and a login page looks like a page with nothing in it.
 
@@ -115,3 +121,4 @@ What `spec` routes by and what `agentic-flow` wires up. Keep it accurate.
 | server | {{SERVER}} |
 | auth | {{AUTH}} |
 | links | {{LINKS}} |
+| fetch | yes |
